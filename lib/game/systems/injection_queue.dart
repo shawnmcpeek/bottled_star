@@ -1,0 +1,75 @@
+import 'dart:math';
+
+import '../constants.dart';
+import '../element_tier.dart';
+
+/// Suika-style injection queue: unlock pool by highest element created this run,
+/// keep H/He common so helium contention stays central. Never inject above
+/// [GameConstants.maxInjectTier] and never inject Fe.
+class InjectionQueue {
+  InjectionQueue({Random? random}) : _rng = random ?? Random() {
+    reset();
+  }
+
+  final Random _rng;
+
+  late ElementTier current;
+  late ElementTier next;
+  int unlockedThrough = 0;
+
+  void reset() {
+    unlockedThrough = 0;
+    current = ElementTier.hydrogen;
+    next = ElementTier.hydrogen;
+  }
+
+  /// Expand the drop pool when the run creates a new highest element.
+  void onHighestTier(int highestTier) {
+    final capped = highestTier.clamp(0, GameConstants.maxInjectTier);
+    if (capped > unlockedThrough) {
+      unlockedThrough = capped;
+    }
+  }
+
+  ElementTier consume() {
+    final fired = current;
+    current = next;
+    next = _roll();
+    return fired;
+  }
+
+  List<ElementTier> get pool {
+    final maxTier = unlockedThrough.clamp(0, GameConstants.maxInjectTier);
+    return [
+      for (var t = 0; t <= maxTier; t++) ElementTier.fromTier(t),
+    ];
+  }
+
+  /// Relative drop weights — H/He stay common.
+  static int weightFor(ElementTier tier) {
+    return switch (tier) {
+      ElementTier.hydrogen => 10,
+      ElementTier.helium => 7,
+      ElementTier.carbon => 4,
+      ElementTier.oxygen => 3,
+      ElementTier.neon => 2,
+      _ => 1,
+    };
+  }
+
+  ElementTier _roll() {
+    final options = pool;
+    var total = 0;
+    for (final tier in options) {
+      total += weightFor(tier);
+    }
+    if (total <= 0) return ElementTier.hydrogen;
+
+    var pick = _rng.nextInt(total);
+    for (final tier in options) {
+      pick -= weightFor(tier);
+      if (pick < 0) return tier;
+    }
+    return options.last;
+  }
+}
