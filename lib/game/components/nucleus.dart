@@ -1,11 +1,14 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/painting.dart';
 
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
+import '../bottled_star_game.dart';
 import '../constants.dart';
+import '../element_art.dart';
 import '../element_tier.dart';
 import '../systems/bottled_star_world.dart';
 import 'chamber.dart';
@@ -86,6 +89,21 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     body.applyForce(dir * (body.mass * accel));
   }
 
+  /// Outward streak as this body is vaporized by a supernova shell.
+  void spawnEjectEffect({required Vector2 origin}) {
+    final gameWorld = world;
+    if (gameWorld is! BottledStarWorld) return;
+    final delta = body.position - origin;
+    gameWorld.add(
+      EjectStreak(
+        at: body.position.clone(),
+        direction: delta,
+        color: TierPalette.fillFor(tier.tier),
+        radius: tier.radius,
+      ),
+    );
+  }
+
   @override
   void beginContact(Object other, Contact contact) {
     if (pendingDestroy) return;
@@ -110,12 +128,6 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     final dir = delta / sep;
     body.applyLinearImpulse(dir * GameConstants.inertBumpImpulse);
     other.body.applyLinearImpulse(-dir * GameConstants.inertBumpImpulse);
-
-    final mid = (body.position + other.body.position) * 0.5;
-    final gameWorld = world;
-    if (gameWorld is BottledStarWorld) {
-      gameWorld.add(InertBumpRipple(at: mid));
-    }
   }
 
   @override
@@ -136,7 +148,6 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     );
 
     final r = tier.radius;
-    final fillColor = TierPalette.fillFor(tier.tier);
     final glowColor = TierPalette.glowFor(tier.tier);
     final energetic = tier.isHelium;
 
@@ -157,6 +168,45 @@ class Nucleus extends BodyComponent with ContactCallbacks {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
       canvas.drawCircle(Offset.zero, r * 2.1, aura);
     }
+
+    final art = _artImage();
+    if (art != null) {
+      _renderArt(canvas, art, r);
+    } else {
+      _renderProcedural(canvas, r);
+    }
+
+    canvas.restore();
+  }
+
+  ui.Image? _artImage() {
+    final game = findGame();
+    if (game is! BottledStarGame) return null;
+    return ElementArt.image(game.images, tier);
+  }
+
+  void _renderArt(Canvas canvas, ui.Image art, double r) {
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      art.width.toDouble(),
+      art.height.toDouble(),
+    );
+    final dst = Rect.fromCenter(
+      center: Offset.zero,
+      width: r * 2,
+      height: r * 2,
+    );
+    canvas.drawImageRect(
+      art,
+      src,
+      dst,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+  }
+
+  void _renderProcedural(Canvas canvas, double r) {
+    final fillColor = TierPalette.fillFor(tier.tier);
 
     final sphere = Paint()
       ..shader = RadialGradient(
@@ -189,8 +239,6 @@ class Nucleus extends BodyComponent with ContactCallbacks {
       canvas,
       Offset(-painter.width / 2, -painter.height / 2),
     );
-
-    canvas.restore();
   }
 
   static TextPainter _symbolPainterFor(ElementTier tier, double radius) {

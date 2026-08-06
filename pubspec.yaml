@@ -14,14 +14,44 @@ dependencies:
   flame: ^1.38.0
   shared_preferences: ^2.5.5
   flame_forge2d: ^0.19.3+7
+  firebase_core: ^4.13.0
+  firebase_auth: ^6.5.7
+  cloud_firestore: ^6.8.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/logo.png
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  background_color_ios: "#000000"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: assets/branding/logo.png
+  web:
+    generate: true
+    image_path: assets/branding/logo.png
+    background_color: "#000000"
+    theme_color: "#0B0710"
+  windows:
+    generate: true
+    image_path: assets/branding/logo.png
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: assets/branding/logo.png
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/branding/logo.png
+    - assets/images/elements/
 
   fonts:
     - family: Space Grotesk

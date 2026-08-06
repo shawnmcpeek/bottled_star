@@ -60,30 +60,6 @@ class MergeFlash extends PositionComponent {
   }
 }
 
-class InertBumpRipple extends PositionComponent {
-  InertBumpRipple({required Vector2 at})
-      : super(position: at.clone(), priority: 25);
-
-  double _age = 0;
-  static const _life = 0.22;
-
-  @override
-  void update(double dt) {
-    _age += dt;
-    if (_age >= _life) removeFromParent();
-  }
-
-  @override
-  void render(Canvas canvas) {
-    final t = _age / _life;
-    final paint = Paint()
-      ..color = const Color(0x55C8A070).withValues(alpha: (1 - t) * 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawCircle(Offset.zero, 8 + t * 22, paint);
-  }
-}
-
 class ScreenFlash extends PositionComponent {
   ScreenFlash({
     this.life = 0.12,
@@ -195,6 +171,60 @@ class SeedParticle extends PositionComponent {
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+  }
+}
+
+/// Brief outward streak when a nucleus is vaporized by the supernova shell.
+class EjectStreak extends PositionComponent {
+  EjectStreak({
+    required Vector2 at,
+    required Vector2 direction,
+    required this.color,
+    required this.radius,
+  })  : _dir = direction.length2 < 0.01
+            ? Vector2(1, 0)
+            : direction.normalized(),
+        super(position: at.clone(), anchor: Anchor.center, priority: 45);
+
+  final Color color;
+  final double radius;
+  final Vector2 _dir;
+  double _age = 0;
+  static const _life = 0.3;
+
+  @override
+  void update(double dt) {
+    _age += dt;
+    position += _dir * (220 * dt * (1 - _age / _life).clamp(0.0, 1.0));
+    if (_age >= _life) removeFromParent();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final t = (_age / _life).clamp(0.0, 1.0);
+    final alpha = (1 - t) * (1 - t);
+    final len = radius * (1.2 + t * 2.4);
+
+    final glow = Paint()
+      ..color = color.withValues(alpha: 0.45 * alpha)
+      ..strokeWidth = radius * 0.55 * (1 - t * 0.5)
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawLine(
+      Offset.zero,
+      Offset(_dir.x * len, _dir.y * len),
+      glow,
+    );
+
+    final core = Paint()
+      ..color = const Color(0xFFFFF4D0).withValues(alpha: 0.85 * alpha)
+      ..strokeWidth = math.max(1.5, radius * 0.22)
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset.zero,
+      Offset(_dir.x * len * 0.85, _dir.y * len * 0.85),
+      core,
+    );
   }
 }
 

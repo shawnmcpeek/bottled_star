@@ -1,11 +1,11 @@
 {
-    "name": "bottled_star",
-    "short_name": "bottled_star",
+    "name": "Bottled Star",
+    "short_name": "Bottled Star",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#000000",
+    "theme_color": "#0B0710",
+    "description": "Bottled Star — a fusion drop-and-merge physics game.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

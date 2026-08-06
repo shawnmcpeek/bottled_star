@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 
 import '../game/bottled_star_game.dart';
 import '../game/constants.dart';
+import '../game/element_art.dart';
 import '../game/element_tier.dart';
+import '../game/systems/first_run_guide.dart';
+import '../game/systems/leaderboard_service.dart';
 import '../game/systems/score_store.dart';
+import '../game/systems/settings_store.dart';
 import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
+import 'howto/how_to_play_overlay.dart';
+import 'menu/display_name_dialog.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -17,14 +23,56 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late final ScoreStore _scoreStore;
+  late final SettingsStore _settings;
   late final BottledStarGame _game;
+  FirstRunGuide? _guide;
+  bool _showGuide = false;
+  bool _bootstrapped = false;
 
   @override
   void initState() {
     super.initState();
     _scoreStore = ScoreStore();
+    _settings = SettingsStore();
     _game = BottledStarGame(scoreStore: _scoreStore);
     _game.gameOverNotifier.addListener(_onGameOverChanged);
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _settings.load();
+    if (!mounted) return;
+    if (!_settings.howToPlaySeen) {
+      final guide = FirstRunGuide(onCompleted: _finishGuide);
+      _game.firstRunGuide = guide;
+      setState(() {
+        _guide = guide;
+        _showGuide = true;
+        _bootstrapped = true;
+      });
+    } else {
+      setState(() => _bootstrapped = true);
+    }
+  }
+
+  Future<void> _finishGuide() async {
+    await _settings.markHowToPlaySeen();
+    if (!mounted) return;
+    _game.firstRunGuide = null;
+    final guide = _guide;
+    setState(() {
+      _showGuide = false;
+      _guide = null;
+    });
+    if (guide != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        guide.dispose();
+      });
+    }
+  }
+
+  void _skipGuide() {
+    _guide?.skip();
   }
 
   void _onGameOverChanged() {
@@ -38,6 +86,9 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _game.gameOverNotifier.removeListener(_onGameOverChanged);
+    _game.firstRunGuide = null;
+    _guide?.dispose();
+    _game.pauseEngine();
     super.dispose();
   }
 
@@ -68,6 +119,11 @@ class _GameScreenState extends State<GameScreen> {
                 );
               },
             ),
+            if (_bootstrapped && _showGuide && _guide != null)
+              HowToPlayOverlay(
+                guide: _guide!,
+                onSkip: _skipGuide,
+              ),
           ],
         ),
       ),
@@ -223,6 +279,45 @@ class _ShotChip extends StatelessWidget {
     final symbolSize = emphasis
         ? (tier.symbol.length > 1 ? 16.0 : 18.0)
         : (tier.symbol.length > 1 ? 12.0 : 14.0);
+    final artPath = ElementArt.assetPath(tier);
+
+    final Widget chipFace;
+    if (artPath != null) {
+      chipFace = ClipOval(
+        child: Image.asset(
+          artPath,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+        ),
+      );
+    } else {
+      chipFace = Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: const Alignment(-0.35, -0.4),
+            colors: [
+              Color.lerp(fill, const Color(0xFFFFFFFF), 0.55)!,
+              fill,
+              Color.lerp(fill, const Color(0xFF1A0508), 0.3)!,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          tier.symbol,
+          style: GameFonts.symbol(
+            fontSize: symbolSize,
+            multiLetter: tier.symbol.length > 1,
+          ),
+        ),
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -234,15 +329,6 @@ class _ShotChip extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(
-              center: const Alignment(-0.35, -0.4),
-              colors: [
-                Color.lerp(fill, const Color(0xFFFFFFFF), 0.55)!,
-                fill,
-                Color.lerp(fill, const Color(0xFF1A0508), 0.3)!,
-              ],
-              stops: const [0.0, 0.45, 1.0],
-            ),
             boxShadow: [
               BoxShadow(
                 color: fill.withValues(alpha: emphasis ? 0.55 : 0.3),
@@ -251,14 +337,7 @@ class _ShotChip extends StatelessWidget {
               ),
             ],
           ),
-          alignment: Alignment.center,
-          child: Text(
-            tier.symbol,
-            style: GameFonts.symbol(
-              fontSize: symbolSize,
-              multiLetter: tier.symbol.length > 1,
-            ),
-          ),
+          child: chipFace,
         ),
       ],
     );
@@ -287,9 +366,7 @@ class EndingOverlay extends StatelessWidget {
           valueListenable: game.endingNotifier,
           builder: (_, ending, _) {
             if (ending == null) return const SizedBox.shrink();
-            return ending == RunEnding.supernova
-                ? _SupernovaCard(game: game)
-                : _WhiteDwarfCard(game: game);
+            return _EndingCard(game: game, ending: ending);
           },
         );
       },
@@ -297,41 +374,99 @@ class EndingOverlay extends StatelessWidget {
   }
 }
 
-class _WhiteDwarfCard extends StatelessWidget {
-  const _WhiteDwarfCard({required this.game});
+class _EndingCard extends StatefulWidget {
+  const _EndingCard({required this.game, required this.ending});
 
   final BottledStarGame game;
+  final RunEnding ending;
+
+  @override
+  State<_EndingCard> createState() => _EndingCardState();
+}
+
+class _EndingCardState extends State<_EndingCard> {
+  final SettingsStore _settings = SettingsStore();
+  final LeaderboardService _boards = LeaderboardService();
+  bool _submitStarted = false;
+  String? _boardStatus;
+
+  bool get _isSupernova => widget.ending == RunEnding.supernova;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeSubmit());
+  }
+
+  Future<void> _maybeSubmit() async {
+    if (_submitStarted || !mounted) return;
+    _submitStarted = true;
+
+    final score = widget.game.scoreNotifier.value;
+    if (score <= 0) return;
+
+    await _settings.load();
+    if (!mounted) return;
+
+    var name = _settings.displayName;
+    if (name == null || name.isEmpty) {
+      name = await promptDisplayName(context);
+      if (!mounted) return;
+      if (name == null) {
+        setState(() => _boardStatus = 'Score kept local');
+        return;
+      }
+      await _settings.setDisplayName(name);
+    }
+
+    setState(() => _boardStatus = 'Submitting…');
+    final result = await _boards.submitBest(
+      score: score,
+      displayName: name,
+      peakTier: widget.game.peakTierNotifier.value,
+      ending: widget.ending.name,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _boardStatus = switch (result) {
+        LeaderboardSubmitResult.submitted => 'Posted to boards',
+        LeaderboardSubmitResult.notImproved => 'Personal best unchanged',
+        LeaderboardSubmitResult.invalidName => 'Name not accepted',
+        LeaderboardSubmitResult.rejected => 'Score rejected',
+        LeaderboardSubmitResult.unavailable => 'Board offline — kept local',
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final peak = ElementTier.fromTier(game.peakTierNotifier.value);
+    final peak = ElementTier.fromTier(widget.game.peakTierNotifier.value);
+    final screenW = MediaQuery.sizeOf(context).width;
+    final maxW = screenW * 0.8;
+
     return ColoredBox(
       color: const Color(0x99050308),
       child: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
+            constraints: BoxConstraints(maxWidth: maxW),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'CONTAINMENT LOST',
-                    style: GameFonts.endingEyebrow(),
+                    _isSupernova ? 'CORE COLLAPSE' : 'CONTAINMENT LOST',
+                    style: GameFonts.endingEyebrow(
+                      color: _isSupernova
+                          ? GameColors.rimWarning
+                          : GameColors.mutedText,
+                    ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
                   Text(
-                    'Your star was not massive enough to reach iron.\n'
-                    'The envelope drifted away over ten thousand years.\n'
-                    'What remains will cool, quietly, for longer than\n'
-                    'the universe has existed so far.',
-                    textAlign: TextAlign.center,
-                    style: GameFonts.prose(),
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    'WHITE DWARF',
+                    _isSupernova ? 'SUPERNOVA' : 'WHITE DWARF',
                     style: GameFonts.endingTitle(),
                   ),
                   const SizedBox(height: 24),
@@ -341,16 +476,44 @@ class _WhiteDwarfCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   ValueListenableBuilder<int>(
-                    valueListenable: game.scoreNotifier,
+                    valueListenable: widget.game.scoreNotifier,
                     builder: (_, score, _) =>
                         _StatLine(label: 'Score', value: '$score'),
                   ),
+                  const SizedBox(height: 22),
+                  ValueListenableBuilder<String?>(
+                    valueListenable: widget.game.endingLineNotifier,
+                    builder: (_, line, _) => _FadingEndingLine(text: line ?? ''),
+                  ),
+                  if (_boardStatus != null) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      _boardStatus!,
+                      textAlign: TextAlign.center,
+                      style: GameFonts.ui(
+                        fontSize: 12,
+                        color: GameColors.mutedText.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 36),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: game.restart,
+                      onPressed: widget.game.restart,
                       child: const Text('Inject again'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Menu',
+                      style: GameFonts.ui(
+                        fontSize: 15,
+                        weight: FontWeight.w600,
+                        color: GameColors.mutedText,
+                      ),
                     ),
                   ),
                 ],
@@ -363,69 +526,60 @@ class _WhiteDwarfCard extends StatelessWidget {
   }
 }
 
-class _SupernovaCard extends StatelessWidget {
-  const _SupernovaCard({required this.game});
+class _FadingEndingLine extends StatefulWidget {
+  const _FadingEndingLine({required this.text});
 
-  final BottledStarGame game;
+  final String text;
+
+  @override
+  State<_FadingEndingLine> createState() => _FadingEndingLineState();
+}
+
+class _FadingEndingLineState extends State<_FadingEndingLine>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    // Land on fixed stats first, then fade the variable line.
+    Future<void>.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _FadingEndingLine oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _controller
+        ..value = 0
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0x99050308),
-      child: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'CORE COLLAPSE',
-                    style: GameFonts.endingEyebrow(
-                      color: GameColors.rimWarning,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Iron cannot fuse. The core gave way and the star\n'
-                    'tore itself apart in seconds.\n\n'
-                    'Everything heavier than iron in the universe was\n'
-                    'made in a moment like this one. The gold in the\n'
-                    'ground. The iodine in your blood.',
-                    textAlign: TextAlign.center,
-                    style: GameFonts.prose(),
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    'SUPERNOVA',
-                    style: GameFonts.endingTitle(),
-                  ),
-                  const SizedBox(height: 24),
-                  const _StatLine(
-                    label: 'Peak element',
-                    value: 'Fe · Iron',
-                  ),
-                  const SizedBox(height: 10),
-                  ValueListenableBuilder<int>(
-                    valueListenable: game.scoreNotifier,
-                    builder: (_, score, _) =>
-                        _StatLine(label: 'Score', value: '$score'),
-                  ),
-                  const SizedBox(height: 36),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: game.restart,
-                      child: const Text('Inject again'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+    if (widget.text.isEmpty) return const SizedBox.shrink();
+    return FadeTransition(
+      opacity: _opacity,
+      child: Text(
+        widget.text,
+        textAlign: TextAlign.center,
+        softWrap: true,
+        style: GameFonts.prose(fontSize: 15, height: 1.4),
       ),
     );
   }

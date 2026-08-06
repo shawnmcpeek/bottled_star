@@ -121,6 +121,21 @@ abstract final class GameFonts {
     );
   }
 
+  /// Main-menu wordmark — same face as endings, tighter tracking for title case.
+  static TextStyle brandWordmark({
+    double fontSize = 36,
+    Color color = GameColors.scoreText,
+  }) {
+    return TextStyle(
+      fontFamily: fraunces,
+      fontSize: fontSize,
+      color: color,
+      letterSpacing: 0.4,
+      height: 1.1,
+      fontVariations: _frauncesDisplay,
+    );
+  }
+
   /// Small ending eyebrows (CONTAINMENT LOST, CORE COLLAPSE).
   static TextStyle endingEyebrow({
     double fontSize = 12,

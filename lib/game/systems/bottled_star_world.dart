@@ -11,6 +11,7 @@ import '../element_tier.dart';
 import 'ending_controller.dart';
 import 'injection_queue.dart';
 import 'merge_system.dart';
+import 'supernova_blast.dart';
 
 typedef ScoreCallback = void Function(int delta, int total);
 typedef GameOverCallback = void Function(RunEnding ending);
@@ -19,6 +20,8 @@ typedef QueueCallback = void Function(ElementTier current, ElementTier next);
 typedef EndingCardCallback = void Function(RunEnding ending);
 typedef FlashCallback = void Function(double seconds);
 typedef ShakeCallback = void Function(double seconds, double intensity);
+typedef VoidGameCallback = void Function();
+typedef PressureCallback = void Function(double normalized01);
 
 class BottledStarWorld extends Forge2DWorld {
   BottledStarWorld({
@@ -29,6 +32,9 @@ class BottledStarWorld extends Forge2DWorld {
     EndingCardCallback? onEndingCard,
     FlashCallback? onFlash,
     ShakeCallback? onShake,
+    VoidGameCallback? onShotFired,
+    VoidGameCallback? onMerge,
+    PressureCallback? onRimPressure,
   })  : onScore = onScore ?? ((_, _) {}),
         onGameOver = onGameOver ?? ((_) {}),
         onTierReached = onTierReached ?? ((_) {}),
@@ -36,6 +42,9 @@ class BottledStarWorld extends Forge2DWorld {
         onEndingCard = onEndingCard ?? ((_) {}),
         onFlash = onFlash ?? ((_) {}),
         onShake = onShake ?? ((_, _) {}),
+        onShotFired = onShotFired ?? (() {}),
+        onMerge = onMerge ?? (() {}),
+        onRimPressure = onRimPressure ?? ((_) {}),
         super(gravity: Vector2.zero());
 
   ScoreCallback onScore;
@@ -45,6 +54,9 @@ class BottledStarWorld extends Forge2DWorld {
   EndingCardCallback onEndingCard;
   FlashCallback onFlash;
   ShakeCallback onShake;
+  VoidGameCallback onShotFired;
+  VoidGameCallback onMerge;
+  PressureCallback onRimPressure;
 
   late final MergeSystem mergeSystem;
   final InjectionQueue injectionQueue = InjectionQueue();
@@ -54,6 +66,7 @@ class BottledStarWorld extends Forge2DWorld {
 
   final List<Nucleus> nuclei = [];
   EndingController? endingController;
+  final Set<int> tiersCreatedThisRun = {};
 
   int score = 0;
   int highestTier = 0;
@@ -104,6 +117,7 @@ class BottledStarWorld extends Forge2DWorld {
     highestTier = 0;
     mergeSystem.chainDepth = 0;
     injectionQueue.reset();
+    tiersCreatedThisRun.clear();
     _displayedPressure = 0;
     _injectorLockout = 0;
     _pendingSupernovaA = null;
@@ -118,6 +132,8 @@ class BottledStarWorld extends Forge2DWorld {
     children.whereType<SeedParticle>().toList().forEach((c) => c.removeFromParent());
     children.whereType<RemnantStar>().toList().forEach((c) => c.removeFromParent());
     children.whereType<ScreenFlash>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<SupernovaBlast>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<EjectStreak>().toList().forEach((c) => c.removeFromParent());
 
     chamber
       ..displayedPressure = 0
@@ -156,10 +172,12 @@ class BottledStarWorld extends Forge2DWorld {
     );
     nuclei.add(nucleus);
     add(nucleus);
+    _noteTierCreated(tier);
     return nucleus;
   }
 
   void onElementCreated(ElementTier tier) {
+    _noteTierCreated(tier);
     if (tier.tier > highestTier) {
       highestTier = tier.tier;
       injectionQueue.onHighestTier(highestTier);
@@ -168,6 +186,10 @@ class BottledStarWorld extends Forge2DWorld {
     } else {
       injectionQueue.onHighestTier(highestTier);
     }
+  }
+
+  void _noteTierCreated(ElementTier tier) {
+    tiersCreatedThisRun.add(tier.tier);
   }
 
   bool fireInjector() {
@@ -195,6 +217,7 @@ class BottledStarWorld extends Forge2DWorld {
       asProjectile: tier.isHydrogen,
       velocity: velocity,
     );
+    onShotFired();
     return true;
   }
 
@@ -219,6 +242,7 @@ class BottledStarWorld extends Forge2DWorld {
       if (mergeSystem.scoreGainedThisStep > 0) {
         score += mergeSystem.scoreGainedThisStep;
         onScore(mergeSystem.scoreGainedThisStep, score);
+        onMerge();
       }
 
       _scanSupernova();
@@ -257,6 +281,7 @@ class BottledStarWorld extends Forge2DWorld {
     _displayedPressure +=
         (target - _displayedPressure) * (1 - math.exp(-8.0 * dt));
     chamber.displayedPressure = _displayedPressure;
+    onRimPressure(_displayedPressure);
   }
 
   void _scanSupernova() {
@@ -302,7 +327,7 @@ class BottledStarWorld extends Forge2DWorld {
     score += GameConstants.kSupernovaScore;
     onScore(GameConstants.kSupernovaScore, score);
 
-    _applyShockwave(origin);
+    add(SupernovaBlast(origin: origin, gameWorld: this));
 
     chamber.flare = 1.0;
     add(ScreenFlash(life: GameConstants.kSupernovaFlashSeconds));
@@ -311,20 +336,7 @@ class BottledStarWorld extends Forge2DWorld {
 
     _injectorLockout = GameConstants.kSupernovaLockoutSeconds;
     injector.cancelCharge();
-    // Rim accumulator keeps running — shockwave risk is intentional.
-  }
-
-  void _applyShockwave(Vector2 origin) {
-    final radius = GameConstants.kBlastRadius;
-    for (final n in List<Nucleus>.from(nuclei)) {
-      if (!n.isMounted || n.pendingDestroy) continue;
-      final delta = n.body.position - origin;
-      final dist = delta.length;
-      if (dist > radius || dist < 0.01) continue;
-      final falloff = math.pow(1.0 - dist / radius, 2).toDouble();
-      final impulse = delta.normalized() * GameConstants.kBlastImpulse * falloff;
-      n.body.applyLinearImpulse(impulse);
-    }
+    // Rim accumulator keeps running — blast risk is intentional.
   }
 
   void _beginRunEnding() {

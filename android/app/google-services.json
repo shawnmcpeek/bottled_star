@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "781699518887",
+    "project_id": "bottled-star",
+    "storage_bucket": "bottled-star.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781699518887:android:4a6e07ab99412b48912682",
+        "android_client_info": {
+          "package_name": "pro.daddoodev.bottledstar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPrEj0SUxzRRGpF7b11lks0wVCWJ24xRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -36,15 +36,26 @@ abstract final class GameConstants {
 
   /// Iron+iron supernova (mid-run detonation).
   static const double kSupernovaContactEpsilon = 2.0;
-  /// Scaled for our Box2D fixture masses (design note: start underpowered, raise until testers hesitate).
+  /// Outer-zone push. Design doc lists 30 for unit-mass toys; Forge2D fixture
+  /// masses need ~12000 for a comparable Δv. Raise until crowded-rim blasts
+  /// can lose the run.
   static const double kBlastImpulse = 12000.0;
-  static const double kBlastRadiusFactor = 0.75;
+  /// Inner vaporize zone base radius (0.35 × chamber). Tune first.
+  static const double kVaporizeRadius = 112.0;
+  /// Outer blast reach base radius (0.75 × chamber).
+  static const double kBlastRadius = 240.0;
+  /// Seconds for the shell to expand to [kBlastRadius].
+  static const double kShellDuration = 0.4;
+  /// Angular lobe strength: 0 = uniform, 0.9 = extreme.
+  static const double kAsymmetry = 0.5;
+  /// Fraction of [ElementTier.scoreOnCreate] awarded when vaporized.
+  static const double kEjectCredit = 0.25;
+  /// Probabilistic band width around the vaporize boundary (±).
+  static const double kSoftEdge = 0.2;
   static const int kSupernovaScore = 500;
   static const double kSupernovaLockoutSeconds = 0.6;
   static const double kSupernovaFlashSeconds = 0.12;
   static const double kSupernovaShakeSeconds = 0.5;
-
-  static double get kBlastRadius => chamberRadius * kBlastRadiusFactor;
 
   // Ending timings
   static const double endingSkipAfterSeconds = 1.5;
@@ -60,6 +71,13 @@ abstract final class GameConstants {
   static const String prefsHighestTier = 'highest_tier';
   static const String prefsTotalRuns = 'total_runs';
   static const String prefsLastEnding = 'last_ending';
+  static const String prefsFiredMilestones = 'fired_milestones';
+  static const String prefsMessageBags = 'message_bags';
+  static const String prefsLastMessageId = 'last_message_id';
+  static const String prefsHowToPlaySeen = 'how_to_play_seen';
+  static const String prefsSoundEnabled = 'sound_enabled';
+  static const String prefsHapticsEnabled = 'haptics_enabled';
+  static const String prefsDisplayName = 'display_name';
 }
 
 enum RunEnding {

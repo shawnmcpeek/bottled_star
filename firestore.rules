@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validName(name) {
+      return name is string
+        && name.size() >= 1
+        && name.size() <= 16;
+    }
+
+    function validScore(score) {
+      return score is int
+        && score >= 0
+        && score <= 1000000;
+    }
+
+    function validPeak(peak) {
+      return peak is int
+        && peak >= 0
+        && peak <= 10;
+    }
+
+    function validEnding(ending) {
+      return ending is string
+        && (ending == 'whiteDwarf' || ending == 'supernova');
+    }
+
+    match /all_time_scores/{uid} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && validName(request.resource.data.displayName)
+        && validScore(request.resource.data.score)
+        && validPeak(request.resource.data.peakTier)
+        && validEnding(request.resource.data.ending);
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && validName(request.resource.data.displayName)
+        && validScore(request.resource.data.score)
+        && validPeak(request.resource.data.peakTier)
+        && validEnding(request.resource.data.ending)
+        && request.resource.data.score >= resource.data.score;
+    }
+
+    match /daily_scores/{docId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && docId == request.resource.data.dayKey + '_' + request.auth.uid
+        && request.resource.data.dayKey is string
+        && request.resource.data.dayKey.size() == 10
+        && validName(request.resource.data.displayName)
+        && validScore(request.resource.data.score)
+        && validPeak(request.resource.data.peakTier)
+        && validEnding(request.resource.data.ending);
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.dayKey == resource.data.dayKey
+        && docId == request.resource.data.dayKey + '_' + request.auth.uid
+        && validName(request.resource.data.displayName)
+        && validScore(request.resource.data.score)
+        && validPeak(request.resource.data.peakTier)
+        && validEnding(request.resource.data.ending)
+        && request.resource.data.score >= resource.data.score;
+    }
+  }
+}

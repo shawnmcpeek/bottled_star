@@ -7,8 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'constants.dart';
+import 'element_art.dart';
 import 'element_tier.dart';
 import 'systems/bottled_star_world.dart';
+import 'systems/first_run_guide.dart';
 import 'systems/score_store.dart';
 
 class BottledStarGame extends Forge2DGame<BottledStarWorld>
@@ -26,10 +28,14 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       ..onQueueChanged = _handleQueue
       ..onEndingCard = _handleEndingCard
       ..onFlash = _handleFlash
-      ..onShake = _handleShake;
+      ..onShake = _handleShake
+      ..onShotFired = _handleShotFired
+      ..onMerge = _handleMerge
+      ..onRimPressure = _handleRimPressure;
   }
 
   final ScoreStore scoreStore;
+  FirstRunGuide? firstRunGuide;
 
   final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
   final ValueNotifier<int> highScoreNotifier = ValueNotifier(0);
@@ -44,6 +50,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       ValueNotifier(ElementTier.hydrogen);
   final ValueNotifier<double> flashNotifier = ValueNotifier(0);
   final ValueNotifier<int> peakTierNotifier = ValueNotifier(0);
+  final ValueNotifier<String?> endingLineNotifier = ValueNotifier(null);
 
   bool _pointerDown = false;
   int? _activePointer;
@@ -59,6 +66,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await ElementArt.preload(images);
     await scoreStore.load();
     highScoreNotifier.value = scoreStore.highScore;
     bestElementNotifier.value = scoreStore.highestTier > 0
@@ -95,6 +103,19 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     if (tier.tier > scoreStore.highestTier) {
       bestElementNotifier.value = tier.symbol;
     }
+    firstRunGuide?.onTierReached(tier);
+  }
+
+  void _handleShotFired() {
+    firstRunGuide?.onShotFired();
+  }
+
+  void _handleMerge() {
+    firstRunGuide?.onMerge();
+  }
+
+  void _handleRimPressure(double normalized01) {
+    firstRunGuide?.onRimPressure(normalized01);
   }
 
   void _handleQueue(ElementTier current, ElementTier next) {
@@ -107,11 +128,13 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     endingNotifier.value = ending;
     endingCardNotifier.value = false;
     peakTierNotifier.value = world.highestTier;
-    await scoreStore.recordRun(
+    final pick = await scoreStore.recordRun(
       score: world.score,
       highestTierReached: world.highestTier,
       ending: ending,
+      tiersCreatedThisRun: Set<int>.from(world.tiersCreatedThisRun),
     );
+    endingLineNotifier.value = pick.text;
     highScoreNotifier.value = scoreStore.highScore;
     if (scoreStore.highestTier > 0) {
       bestElementNotifier.value =
@@ -141,6 +164,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     gameOverNotifier.value = false;
     endingCardNotifier.value = false;
     endingNotifier.value = null;
+    endingLineNotifier.value = null;
     lastUnlockNotifier.value = null;
     peakTierNotifier.value = 0;
     flashNotifier.value = 0;
