@@ -53,6 +53,7 @@ app.*.map.json
 .env
 .env.*
 *.pem
+android/key.properties
 
 # Google Play API service account keys (not Firebase google-services.json)
 bottled-star-*.json

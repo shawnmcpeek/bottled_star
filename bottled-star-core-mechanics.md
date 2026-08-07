@@ -70,7 +70,20 @@ Generated locally Aug 2026. File is gitignored (`*.jks`, `*.keystore`). Password
 | Package / applicationId | `pro.daddoodev.bottledstar` |
 | DN | `CN=Shawn McPeek, OU=Bottled Star, O=Daddoo Dev, L=Firestone, ST=CO, C=US` |
 
-Codemagic vars: `CM_KEYSTORE` (file/base64), `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS=bottledstar`, `CM_KEY_PASSWORD`.
+Codemagic vars: `CM_KEYSTORE_PATH` (set by Codemagic when the keystore is uploaded), `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS=bottledstar`, `CM_KEY_PASSWORD`.
+
+**Android release signing is wired in `android/app/build.gradle.kts`.** Release builds use the `release` signing config (Codemagic env or local `android/key.properties`). Debug signing is never used for release.
+
+This project has **no flavors** and **no `lib/main_prod.dart`**. Codemagic Android/iOS/Web build arguments must be empty or only `--release` — do not pass `--flavor …` or `-t lib/main_prod.dart`.
+
+Local release key.properties (gitignored), path relative to `android/`:
+
+```
+storePassword=<keystore password>
+keyPassword=<key password>
+keyAlias=bottledstar
+storeFile=../bottled-star-upload.jks
+```
 
 ## 0d. Google Play publishing (non-secret)
 
@@ -86,7 +99,7 @@ Service account created Aug 2026 for Codemagic → Play uploads. JSON key is git
 | Play Android Developer API | Enabled / connected |
 | Play Console permissions | Granted to the service account email |
 
-Still needed: App Store Connect app + API key (`.p8`), then `codemagic.yaml` + Android release signing config.
+Still needed: App Store Connect API key (`.p8`) if not done; Codemagic workflow — Mode Release, AAB, **clear flavor/main_prod args**.
 
 ### Explicitly out of scope for this build
 
