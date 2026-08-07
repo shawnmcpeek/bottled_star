@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/game_colors.dart';
 
@@ -33,6 +34,7 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   double _elapsed = 0;
+  final Map<String, ui.Image> _creditArt = {};
 
   @override
   void initState() {
@@ -41,11 +43,41 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
       setState(() => _elapsed = elapsed.inMilliseconds / 1000.0);
     })
       ..start();
+    _loadCreditArt();
+  }
+
+  @override
+  void didUpdateWidget(covariant MenuAtmosphere oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.driftCast != widget.driftCast) {
+      _loadCreditArt();
+    }
+  }
+
+  Future<void> _loadCreditArt() async {
+    if (widget.driftCast != MenuDriftCast.creditsFamily) return;
+    for (final kind in _CreditDriftKind.roster) {
+      final path = kind.assetPath;
+      if (path == null || _creditArt.containsKey(path)) continue;
+      final data = await rootBundle.load(path);
+      final codec = await ui.instantiateImageCodec(
+        data.buffer.asUint8List(),
+      );
+      final frame = await codec.getNextFrame();
+      if (!mounted) {
+        frame.image.dispose();
+        return;
+      }
+      setState(() => _creditArt[path] = frame.image);
+    }
   }
 
   @override
   void dispose() {
     _ticker.dispose();
+    for (final image in _creditArt.values) {
+      image.dispose();
+    }
     super.dispose();
   }
 
@@ -55,6 +87,7 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
       painter: _MenuAtmospherePainter(
         elapsedSeconds: _elapsed,
         driftCast: widget.driftCast,
+        creditArt: _creditArt,
       ),
       child: const SizedBox.expand(),
     );
@@ -64,21 +97,22 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
 class _CreditDriftKind {
   const _CreditDriftKind({
     required this.fill,
-    required this.emoji,
+    this.emoji,
+    this.assetPath,
   });
 
   final Color fill;
-  final String emoji;
+  final String? emoji;
+  final String? assetPath;
 
   static const panda = _CreditDriftKind(
     fill: Color(0xFFF0F0F2),
     emoji: '🐼',
   );
 
-  // Placeholder face until SakiVoid's yeti art lands.
   static const yeti = _CreditDriftKind(
     fill: Color(0xFFD8E8F5),
-    emoji: '🏔️',
+    assetPath: 'assets/images/elements/yeti.png',
   );
 
   static const roster = [panda, yeti];
@@ -88,10 +122,12 @@ class _MenuAtmospherePainter extends CustomPainter {
   _MenuAtmospherePainter({
     required this.elapsedSeconds,
     required this.driftCast,
+    required this.creditArt,
   });
 
   final double elapsedSeconds;
   final MenuDriftCast driftCast;
+  final Map<String, ui.Image> creditArt;
 
   /// Seconds between drift starts (crossing itself is shorter).
   static const _driftPeriod = 7.0;
@@ -219,25 +255,39 @@ class _MenuAtmospherePainter extends CustomPainter {
 
     // Stable per-crossing RNG so the path doesn't jitter frame to frame.
     final rng = math.Random(cycleIndex * 9973 + 42);
-    final path = _driftPath(rng, size, coreCenter, rimR * 1.25);
-    if (path == null) return;
 
-    final pos = Offset.lerp(path.$1, path.$2, travel)!;
-    if ((pos - coreCenter).distance < rimR * 1.1) return;
+    final Offset pos;
+    if (driftCast == MenuDriftCast.creditsFamily) {
+      final points = _cometPath(rng, size, coreCenter, rimR);
+      if (points == null) return;
+      pos = _samplePolyline(points, travel);
+    } else {
+      final path = _driftPath(rng, size, coreCenter, rimR * 1.25);
+      if (path == null) return;
+      pos = Offset.lerp(path.$1, path.$2, travel)!;
+      // Keep ladder nuclei clear of the bottled-star core on other menus.
+      if ((pos - coreCenter).distance < rimR * 1.1) return;
+    }
 
-    final r =
-        math.min(size.width, size.height) * (0.034 + rng.nextDouble() * 0.02);
+    final r = driftCast == MenuDriftCast.creditsFamily
+        ? math.min(size.width, size.height) * 0.044
+        : math.min(size.width, size.height) *
+            (0.034 + rng.nextDouble() * 0.02);
 
     final Color fill;
     final String? emoji;
+    final ui.Image? art;
     if (driftCast == MenuDriftCast.creditsFamily) {
       final kind = _CreditDriftKind
           .roster[cycleIndex % _CreditDriftKind.roster.length];
       fill = kind.fill;
       emoji = kind.emoji;
+      final path = kind.assetPath;
+      art = path == null ? null : creditArt[path];
     } else {
       fill = TierPalette.fills[rng.nextInt(TierPalette.fills.length)];
       emoji = null;
+      art = null;
     }
 
     final glowPaint = Paint()
@@ -260,7 +310,31 @@ class _MenuAtmospherePainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: pos, radius: r));
     canvas.drawCircle(pos, r, sphere);
 
-    if (emoji != null) {
+    if (art != null) {
+      // Inset face so the soft sphere rim matches the panda emoji read.
+      final faceR = r * 0.88;
+      final src = Rect.fromLTWH(
+        0,
+        0,
+        art.width.toDouble(),
+        art.height.toDouble(),
+      );
+      final dst = Rect.fromCircle(center: pos, radius: faceR);
+      canvas.save();
+      canvas.clipPath(Path()..addOval(dst));
+      canvas.drawImageRect(
+        art,
+        src,
+        dst,
+        Paint()
+          ..filterQuality = FilterQuality.medium
+          ..colorFilter = ColorFilter.mode(
+            Color.fromRGBO(255, 255, 255, alpha.clamp(0.0, 1.0)),
+            BlendMode.modulate,
+          ),
+      );
+      canvas.restore();
+    } else if (emoji != null) {
       final tp = TextPainter(
         text: TextSpan(
           text: emoji,
@@ -274,6 +348,87 @@ class _MenuAtmospherePainter extends CustomPainter {
       )..layout();
       tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
     }
+  }
+
+  /// Credits-only: edge → skim the core with soft gravity → exit another edge.
+  List<Offset>? _cometPath(
+    math.Random rng,
+    Size size,
+    Offset core,
+    double rimR,
+  ) {
+    for (var attempt = 0; attempt < 16; attempt++) {
+      final startEdge = rng.nextInt(4);
+      final start = _pointOnEdge(rng, size, startEdge);
+
+      // Aim for a flyby just outside the rim glow.
+      final periapsis = rimR * (0.55 + rng.nextDouble() * 0.5);
+      final aimAngle = rng.nextDouble() * math.pi * 2;
+      final aim = core + Offset(math.cos(aimAngle), math.sin(aimAngle)) * periapsis;
+
+      final toAim = aim - start;
+      final aimLen = toAim.distance;
+      if (aimLen < 8) continue;
+
+      final baseSpeed = math.min(size.width, size.height) * 0.62;
+      var vel = Offset(toAim.dx / aimLen, toAim.dy / aimLen) * baseSpeed;
+      var pos = start;
+
+      final gravity = math.pow(math.min(size.width, size.height), 2) * 0.14;
+      final soft = rimR * 0.4;
+      final floor = rimR * 0.48;
+      const dt = 1 / 60.0;
+      final margin = math.min(size.width, size.height) * 0.25;
+      final bounds = Rect.fromLTRB(
+        -margin,
+        -margin,
+        size.width + margin,
+        size.height + margin,
+      );
+
+      final points = <Offset>[start];
+      var skimmed = false;
+
+      for (var step = 0; step < 480; step++) {
+        final toCore = core - pos;
+        final d = toCore.distance;
+        if (d > 1) {
+          var pull = gravity / (d * d + soft * soft);
+          if (d < floor) {
+            // Bounce soft off the core so it curves instead of plunging in.
+            final out = Offset(-toCore.dx / d, -toCore.dy / d);
+            vel += out * ((floor - d) / floor) * baseSpeed * 0.35;
+            pull *= 0.25;
+            skimmed = true;
+          } else if (d < rimR * 1.35) {
+            skimmed = true;
+          }
+          vel += Offset(toCore.dx / d, toCore.dy / d) * pull * dt;
+        }
+
+        final spd = vel.distance;
+        final maxSpd = baseSpeed * 1.85;
+        if (spd > maxSpd) {
+          vel = Offset(vel.dx / spd, vel.dy / spd) * maxSpd;
+        }
+
+        pos += vel * dt;
+        points.add(pos);
+
+        if (step > 40 && !bounds.contains(pos)) {
+          if (skimmed && points.length > 24) return points;
+          break;
+        }
+      }
+    }
+    return null;
+  }
+
+  Offset _samplePolyline(List<Offset> points, double t) {
+    if (points.length == 1) return points.first;
+    final f = (t.clamp(0.0, 1.0)) * (points.length - 1);
+    final i = f.floor().clamp(0, points.length - 2);
+    return Offset.lerp(points[i], points[i + 1], f - i)!;
   }
 
   /// Edge-to-edge chord that stays clear of the bottled-star core.
@@ -326,7 +481,8 @@ class _MenuAtmospherePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _MenuAtmospherePainter oldDelegate) =>
       oldDelegate.elapsedSeconds != elapsedSeconds ||
-      oldDelegate.driftCast != driftCast;
+      oldDelegate.driftCast != driftCast ||
+      oldDelegate.creditArt.length != creditArt.length;
 }
 
 class _Star {

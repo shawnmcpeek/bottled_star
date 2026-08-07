@@ -30,7 +30,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Future<void> _play() async {
-    await Navigator.of(context).pushNamed('/play');
+    await Navigator.of(context).pushNamed('/mode');
     await _scores.load();
     if (mounted) setState(() {});
   }

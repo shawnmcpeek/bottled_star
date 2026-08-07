@@ -2,12 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 
+import '../collapse/remnant.dart';
 import '../components/chamber.dart';
 import '../components/effects.dart';
 import '../components/injector.dart';
 import '../components/nucleus.dart';
 import '../constants.dart';
 import '../element_tier.dart';
+import '../modes/game_mode.dart';
 import 'ending_controller.dart';
 import 'injection_queue.dart';
 import 'merge_system.dart';
@@ -25,6 +27,7 @@ typedef PressureCallback = void Function(double normalized01);
 
 class BottledStarWorld extends Forge2DWorld {
   BottledStarWorld({
+    this.mode = GameMode.classic,
     ScoreCallback? onScore,
     GameOverCallback? onGameOver,
     TierCallback? onTierReached,
@@ -47,6 +50,8 @@ class BottledStarWorld extends Forge2DWorld {
         onRimPressure = onRimPressure ?? ((_) {}),
         super(gravity: Vector2.zero());
 
+  final GameMode mode;
+
   ScoreCallback onScore;
   GameOverCallback onGameOver;
   TierCallback onTierReached;
@@ -63,8 +68,10 @@ class BottledStarWorld extends Forge2DWorld {
   late final ChamberWall chamber;
   final Injector injector = Injector();
   late final ChamberBackdrop backdrop;
+  Remnant? remnant;
 
   final List<Nucleus> nuclei = [];
+  final List<void Function()> _postStepOps = [];
   EndingController? endingController;
   final Set<int> tiersCreatedThisRun = {};
 
@@ -74,6 +81,7 @@ class BottledStarWorld extends Forge2DWorld {
   bool inputEnabled = true;
   bool physicsEnabled = true;
   bool rimPressureEnabled = true;
+  bool _collapseBeatLock = false;
 
   double _displayedPressure = 0;
   double _injectorLockout = 0;
@@ -82,6 +90,30 @@ class BottledStarWorld extends Forge2DWorld {
   RunEnding? activeEnding;
 
   static final Vector2 chamberCenter = Vector2.zero();
+
+  bool get isCollapse => mode == GameMode.collapse;
+  bool get canInject =>
+      inputEnabled && !gameOver && _injectorLockout <= 0 && !_collapseBeatLock;
+
+  void deferPostStep(void Function() op) => _postStepOps.add(op);
+
+  void drainPostStep() {
+    if (_postStepOps.isEmpty) return;
+    final ops = List<void Function()>.from(_postStepOps);
+    _postStepOps.clear();
+    for (final op in ops) {
+      op();
+    }
+  }
+
+  void beginCollapseBeat() {
+    _collapseBeatLock = true;
+    injector.cancelCharge();
+  }
+
+  void endCollapseBeat() {
+    _collapseBeatLock = false;
+  }
 
   @override
   Future<void> onLoad() async {
@@ -94,6 +126,11 @@ class BottledStarWorld extends Forge2DWorld {
 
     chamber = ChamberWall();
     await add(chamber);
+
+    if (isCollapse) {
+      remnant = Remnant(gameWorld: this);
+      await add(remnant!);
+    }
 
     injector.loadedTier = injectionQueue.current;
     await add(injector);
@@ -113,6 +150,7 @@ class BottledStarWorld extends Forge2DWorld {
     inputEnabled = true;
     physicsEnabled = true;
     rimPressureEnabled = true;
+    _collapseBeatLock = false;
     score = 0;
     highestTier = 0;
     mergeSystem.chainDepth = 0;
@@ -122,6 +160,8 @@ class BottledStarWorld extends Forge2DWorld {
     _injectorLockout = 0;
     _pendingSupernovaA = null;
     _pendingSupernovaB = null;
+    _postStepOps.clear();
+    remnant?.reset();
 
     for (final n in List<Nucleus>.from(nuclei)) {
       if (n.isMounted) n.removeFromParent();
@@ -194,6 +234,10 @@ class BottledStarWorld extends Forge2DWorld {
 
   bool fireInjector() {
     if (!inputEnabled || gameOver || _injectorLockout > 0) return false;
+    if (_collapseBeatLock) {
+      injector.cancelCharge();
+      return false;
+    }
     final power01 = injector.releaseCharge();
     if (power01 == null) return false;
 
@@ -225,6 +269,12 @@ class BottledStarWorld extends Forge2DWorld {
     endingController?.trySkip();
   }
 
+  /// Collapse only — called when a mid-run blast shell finishes.
+  void onSupernovaBlastResolved(Vector2 origin) {
+    if (!isCollapse || gameOver) return;
+    remnant?.onSupernova(origin);
+  }
+
   @override
   void update(double dt) {
     if (_injectorLockout > 0) {
@@ -235,9 +285,15 @@ class BottledStarWorld extends Forge2DWorld {
       for (final n in nuclei) {
         if (n.isMounted) n.applyRadialGravity();
       }
+      if (isCollapse) {
+        remnant?.applyForces();
+      }
+
       physicsWorld.stepDt(dt);
       mergeSystem.scanTouchingPairs();
       mergeSystem.resolve();
+      drainPostStep();
+      remnant?.drainDeferred();
 
       if (mergeSystem.scoreGainedThisStep > 0) {
         score += mergeSystem.scoreGainedThisStep;
@@ -247,6 +303,17 @@ class BottledStarWorld extends Forge2DWorld {
 
       _scanSupernova();
       _resolveQueuedSupernova();
+
+      if (isCollapse) {
+        remnant?.tick(dt);
+        drainPostStep();
+        remnant?.drainDeferred();
+        if (remnant != null && remnant!.state.chamberConsumed) {
+          _beginConsumedEnding();
+          return;
+        }
+      }
+
       _updateRimPressure(dt);
     } else if (!physicsEnabled) {
       // Ending cinematics still need component updates via Flame;
@@ -339,6 +406,31 @@ class BottledStarWorld extends Forge2DWorld {
     // Rim accumulator keeps running — blast risk is intentional.
   }
 
+  void _beginConsumedEnding() {
+    if (gameOver) return;
+    gameOver = true;
+    inputEnabled = false;
+    physicsEnabled = false;
+    rimPressureEnabled = false;
+    injector.cancelCharge();
+
+    activeEnding = RunEnding.blackHole;
+
+    for (final n in nuclei) {
+      if (n.isMounted) n.body.linearVelocity.setZero();
+    }
+
+    endingController = EndingController(
+      world: this,
+      ending: activeEnding!,
+      onCardReady: (ending) => onEndingCard(ending),
+      onFlash: onFlash,
+      onShake: onShake,
+    )..start();
+    add(endingController!);
+    onGameOver(activeEnding!);
+  }
+
   void _beginRunEnding() {
     if (gameOver) return;
     gameOver = true;
@@ -351,7 +443,6 @@ class BottledStarWorld extends Forge2DWorld {
         ? RunEnding.supernova
         : RunEnding.whiteDwarf;
 
-    // Freeze velocities
     for (final n in nuclei) {
       if (n.isMounted) n.body.linearVelocity.setZero();
     }

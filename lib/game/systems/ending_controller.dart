@@ -49,9 +49,11 @@ class EndingController extends Component {
   RemnantStar? _remnant;
 
   void start() {
-    phase = ending == RunEnding.supernova
-        ? EndingPhase.compress
-        : EndingPhase.hold;
+    phase = switch (ending) {
+      RunEnding.supernova => EndingPhase.compress,
+      RunEnding.blackHole => EndingPhase.hold,
+      RunEnding.whiteDwarf => EndingPhase.hold,
+    };
     phaseAge = 0;
     totalAge = 0;
     cardShown = false;
@@ -71,6 +73,12 @@ class EndingController extends Component {
         delay: _rng.nextDouble() * 0.4,
         startScale: 1,
       );
+    }
+
+    // Black hole: short dim beat then card.
+    if (ending == RunEnding.blackHole) {
+      onFlash(0.2);
+      onShake(0.35, 5);
     }
   }
 
@@ -101,6 +109,23 @@ class EndingController extends Component {
         _updateWhiteDwarf(dt);
       case RunEnding.supernova:
         _updateSupernova(dt);
+      case RunEnding.blackHole:
+        _updateBlackHole(dt);
+    }
+  }
+
+  void _updateBlackHole(double dt) {
+    // Brief hold while the chamber dims, then card.
+    world.chamber.displayedPressure =
+        math.max(0, world.chamber.displayedPressure - dt / 0.8);
+    for (final n in world.nuclei) {
+      if (n.isMounted) {
+        n.body.linearVelocity.setZero();
+        n.renderOpacity = math.max(0, n.renderOpacity - dt * 0.7);
+      }
+    }
+    if (phaseAge >= 1.0) {
+      _goToCard();
     }
   }
 

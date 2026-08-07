@@ -50,9 +50,43 @@ Decisions for the near-production tester build. Treat these as constraints unles
 | Helium-rule mitigation | **Inert bump feedback shipped** | Soft shove + ripple on non-merges; energetic helium look also on |
 | Injection contents | **Suika-style weighted queue** | Unlock by highest element this run; cap at neon; H/He weighted high |
 | Same-tier fusion | **Shipped** | C+C→Mg, O+O→S, Ne+Ne→Ca, Si+Si→Fe; Mg/S/Ar/Ca self still inert |
-| Signing / store delivery | Owner handles later | Play internal / TestFlight for other testers; local builds for self-test |
+| Signing / store delivery | **Keystore + Play API ready** — ASC / Codemagic wiring next | See §0c. Secrets never in git. |
 | Quality bar | Play as if production | No placeholder art, no stub UI, no “spike-only” presentation |
 | Typography | Space Grotesk + Fraunces | Bundled OFL faces in `assets/fonts/` — no runtime network fetch |
+
+---
+
+## 0c. Android release signing (non-secret)
+
+Generated locally Aug 2026. File is gitignored (`*.jks`, `*.keystore`). Passwords live in the password manager + Codemagic secure vars only.
+
+| Field | Value |
+|:--|:--|
+| Keystore file | `bottled-star-upload.jks` (repo root, ignored) |
+| Store type | JKS |
+| Alias | `bottledstar` |
+| Key alg | RSA 2048 |
+| Validity | 10000 days |
+| Package / applicationId | `pro.daddoodev.bottledstar` |
+| DN | `CN=Shawn McPeek, OU=Bottled Star, O=Daddoo Dev, L=Firestone, ST=CO, C=US` |
+
+Codemagic vars: `CM_KEYSTORE` (file/base64), `CM_KEYSTORE_PASSWORD`, `CM_KEY_ALIAS=bottledstar`, `CM_KEY_PASSWORD`.
+
+## 0d. Google Play publishing (non-secret)
+
+Service account created Aug 2026 for Codemagic → Play uploads. JSON key is gitignored; full JSON contents live in Codemagic as secure env `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS`.
+
+| Field | Value |
+|:--|:--|
+| Cloud / Firebase project | `bottled-star` |
+| Service account email | `codemagic-play@bottled-star.iam.gserviceaccount.com` |
+| Local key file (ignored) | `bottled-star-10dbe909c7b2.json` |
+| Codemagic env | `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` |
+| Play package | `pro.daddoodev.bottledstar` |
+| Play Android Developer API | Enabled / connected |
+| Play Console permissions | Granted to the service account email |
+
+Still needed: App Store Connect app + API key (`.p8`), then `codemagic.yaml` + Android release signing config.
 
 ### Explicitly out of scope for this build
 
@@ -333,7 +367,7 @@ Full ladder, fail state, score, local high score, production-feel glow art (not 
 - Codex (§9)
 - Localised rim heating (optional arc brightening)
 - Physics/feel tuning (`kBlastImpulse` especially)
-- Store listing assets + signing when owner is ready
+- Store listing assets; Codemagic + ASC delivery (keystore + Play API ready — §0c/§0d)
 - Analytics only if explicitly requested
 
 ---

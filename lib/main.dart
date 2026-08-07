@@ -9,8 +9,10 @@ import 'theme/game_colors.dart';
 import 'ui/game_screen.dart';
 import 'ui/menu/credits_screen.dart';
 import 'ui/menu/menu_screen.dart';
+import 'ui/menu/mode_select_screen.dart';
 import 'ui/menu/options_screen.dart';
 import 'ui/menu/scores_screen.dart';
+import 'game/modes/game_mode.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +61,12 @@ class BottledStarApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (_) => const MenuScreen(),
-        '/play': (_) => const GameScreen(),
+        '/mode': (_) => const ModeSelectScreen(),
+        '/play': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final mode = args is GameMode ? args : GameMode.classic;
+          return GameScreen(mode: mode);
+        },
         '/scores': (_) => const ScoresScreen(),
         '/options': (_) => const OptionsScreen(),
         '/credits': (_) => const CreditsScreen(),

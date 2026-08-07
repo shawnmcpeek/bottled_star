@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets / store credentials — never commit
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+.env
+.env.*
+*.pem
+
+# Google Play API service account keys (not Firebase google-services.json)
+bottled-star-*.json
+*-firebase-adminsdk-*.json
+*service-account*.json
+pc-api-key*.json
+AuthKey_*.p8

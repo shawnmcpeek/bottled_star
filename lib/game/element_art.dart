@@ -14,6 +14,12 @@ abstract final class ElementArt {
 
   /// Filename stem per tier — add entries as new art lands.
   static const Map<ElementTier, String> fileNames = {
+    ElementTier.hydrogen: 'Hydrogen.png',
+    ElementTier.helium: 'Helium.png',
+    ElementTier.carbon: 'carbon.png',
+    ElementTier.oxygen: 'Oxygen.png',
+    ElementTier.neon: 'Neon.png',
+    ElementTier.magnesium: 'Magnisium.png',
     ElementTier.silicon: 'silicon.png',
     ElementTier.sulfur: 'sulfur.png',
     ElementTier.argon: 'argon.png',

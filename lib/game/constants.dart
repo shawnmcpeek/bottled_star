@@ -82,7 +82,8 @@ abstract final class GameConstants {
 
 enum RunEnding {
   whiteDwarf,
-  supernova;
+  supernova,
+  blackHole;
 
   String get prefsValue => name;
   static RunEnding? fromPrefs(String? value) {

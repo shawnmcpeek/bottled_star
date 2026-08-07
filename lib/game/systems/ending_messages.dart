@@ -129,13 +129,19 @@ abstract final class EndingMessages {
     ],
   };
 
-  static String endingPoolKey(RunEnding ending) =>
-      ending == RunEnding.supernova ? 'ending_supernova' : 'ending_white_dwarf';
+  static String endingPoolKey(RunEnding ending) => switch (ending) {
+        RunEnding.supernova => 'ending_supernova',
+        RunEnding.whiteDwarf => 'ending_white_dwarf',
+        RunEnding.blackHole => 'ending_black_hole',
+      };
 
   static String elementPoolKey(int tier) => 'element_$tier';
 
-  static List<String> endingLines(RunEnding ending) =>
-      ending == RunEnding.supernova ? supernovaPool : whiteDwarfPool;
+  static List<String> endingLines(RunEnding ending) => switch (ending) {
+        RunEnding.supernova => supernovaPool,
+        RunEnding.whiteDwarf => whiteDwarfPool,
+        RunEnding.blackHole => const [],
+      };
 
   static String? milestoneFor(
     EndingMessageContext ctx,

@@ -44,6 +44,7 @@ class SupernovaBlast extends PositionComponent {
 
   double _shellT = 0;
   final Set<Nucleus> _processed = {};
+  bool _remnantHooked = false;
 
   double get _progress =>
       (_shellT / GameConstants.kShellDuration).clamp(0.0, 1.0);
@@ -117,6 +118,10 @@ class SupernovaBlast extends PositionComponent {
 
     // Linger briefly so the fully expanded lobe can be read, then go.
     if (_shellT >= GameConstants.kShellDuration + 0.2) {
+      if (!_remnantHooked) {
+        _remnantHooked = true;
+        gameWorld.onSupernovaBlastResolved(origin);
+      }
       removeFromParent();
     }
   }

@@ -5,6 +5,7 @@ import '../game/bottled_star_game.dart';
 import '../game/constants.dart';
 import '../game/element_art.dart';
 import '../game/element_tier.dart';
+import '../game/modes/game_mode.dart';
 import '../game/systems/first_run_guide.dart';
 import '../game/systems/leaderboard_service.dart';
 import '../game/systems/score_store.dart';
@@ -15,7 +16,9 @@ import 'howto/how_to_play_overlay.dart';
 import 'menu/display_name_dialog.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  const GameScreen({super.key, this.mode = GameMode.classic});
+
+  final GameMode mode;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -32,9 +35,9 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _scoreStore = ScoreStore();
+    _scoreStore = ScoreStore(mode: widget.mode);
     _settings = SettingsStore();
-    _game = BottledStarGame(scoreStore: _scoreStore);
+    _game = BottledStarGame(scoreStore: _scoreStore, mode: widget.mode);
     _game.gameOverNotifier.addListener(_onGameOverChanged);
     _bootstrap();
   }
@@ -391,6 +394,7 @@ class _EndingCardState extends State<_EndingCard> {
   String? _boardStatus;
 
   bool get _isSupernova => widget.ending == RunEnding.supernova;
+  bool get _isBlackHole => widget.ending == RunEnding.blackHole;
 
   @override
   void initState() {
@@ -439,9 +443,26 @@ class _EndingCardState extends State<_EndingCard> {
     });
   }
 
+  String get _eyebrow => _isBlackHole
+      ? 'EVENT HORIZON'
+      : _isSupernova
+          ? 'CORE COLLAPSE'
+          : 'CONTAINMENT LOST';
+
+  String get _title => _isBlackHole
+      ? 'COLLAPSE'
+      : _isSupernova
+          ? 'SUPERNOVA'
+          : 'WHITE DWARF';
+
+  Color get _eyebrowColor => _isBlackHole || _isSupernova
+      ? GameColors.rimWarning
+      : GameColors.mutedText;
+
   @override
   Widget build(BuildContext context) {
     final peak = ElementTier.fromTier(widget.game.peakTierNotifier.value);
+    final remnant = widget.game.world.remnant?.state;
     final screenW = MediaQuery.sizeOf(context).width;
     final maxW = screenW * 0.8;
 
@@ -457,29 +478,44 @@ class _EndingCardState extends State<_EndingCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _isSupernova ? 'CORE COLLAPSE' : 'CONTAINMENT LOST',
-                    style: GameFonts.endingEyebrow(
-                      color: _isSupernova
-                          ? GameColors.rimWarning
-                          : GameColors.mutedText,
-                    ),
+                    _eyebrow,
+                    style: GameFonts.endingEyebrow(color: _eyebrowColor),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _isSupernova ? 'SUPERNOVA' : 'WHITE DWARF',
+                    _title,
                     style: GameFonts.endingTitle(),
                   ),
                   const SizedBox(height: 24),
-                  _StatLine(
-                    label: 'Peak element',
-                    value: '${peak.symbol} · ${peak.displayName}',
-                  ),
-                  const SizedBox(height: 10),
-                  ValueListenableBuilder<int>(
-                    valueListenable: widget.game.scoreNotifier,
-                    builder: (_, score, _) =>
-                        _StatLine(label: 'Score', value: '$score'),
-                  ),
+                  if (_isBlackHole) ...[
+                    Text(
+                      '${remnant?.supernovaCount ?? 0} supernovae  ·  '
+                      '${remnant?.consumedCount ?? 0} nuclei consumed',
+                      textAlign: TextAlign.center,
+                      style: GameFonts.ui(
+                        fontSize: 14,
+                        weight: FontWeight.w500,
+                        color: GameColors.mutedText,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ValueListenableBuilder<int>(
+                      valueListenable: widget.game.scoreNotifier,
+                      builder: (_, score, _) =>
+                          _StatLine(label: 'Score', value: '$score'),
+                    ),
+                  ] else ...[
+                    _StatLine(
+                      label: 'Peak element',
+                      value: '${peak.symbol} · ${peak.displayName}',
+                    ),
+                    const SizedBox(height: 10),
+                    ValueListenableBuilder<int>(
+                      valueListenable: widget.game.scoreNotifier,
+                      builder: (_, score, _) =>
+                          _StatLine(label: 'Score', value: '$score'),
+                    ),
+                  ],
                   const SizedBox(height: 22),
                   ValueListenableBuilder<String?>(
                     valueListenable: widget.game.endingLineNotifier,

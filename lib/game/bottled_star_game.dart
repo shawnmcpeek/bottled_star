@@ -9,15 +9,18 @@ import 'package:flutter/widgets.dart';
 import 'constants.dart';
 import 'element_art.dart';
 import 'element_tier.dart';
+import 'modes/game_mode.dart';
 import 'systems/bottled_star_world.dart';
 import 'systems/first_run_guide.dart';
 import 'systems/score_store.dart';
 
 class BottledStarGame extends Forge2DGame<BottledStarWorld>
     with MultiTouchDragDetector, KeyboardEvents {
-  BottledStarGame({required this.scoreStore})
-      : super(
-          world: BottledStarWorld(),
+  BottledStarGame({
+    required this.scoreStore,
+    this.mode = GameMode.classic,
+  }) : super(
+          world: BottledStarWorld(mode: mode),
           gravity: Vector2.zero(),
           zoom: 1,
         ) {
@@ -35,6 +38,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   }
 
   final ScoreStore scoreStore;
+  final GameMode mode;
   FirstRunGuide? firstRunGuide;
 
   final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
@@ -128,11 +132,14 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     endingNotifier.value = ending;
     endingCardNotifier.value = false;
     peakTierNotifier.value = world.highestTier;
+    final remnant = world.remnant?.state;
     final pick = await scoreStore.recordRun(
       score: world.score,
       highestTierReached: world.highestTier,
       ending: ending,
       tiersCreatedThisRun: Set<int>.from(world.tiersCreatedThisRun),
+      supernovaCount: remnant?.supernovaCount ?? 0,
+      consumedCount: remnant?.consumedCount ?? 0,
     );
     endingLineNotifier.value = pick.text;
     highScoreNotifier.value = scoreStore.highScore;
@@ -213,7 +220,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       world.trySkipEnding();
       return;
     }
-    if (!world.inputEnabled) return;
+    if (!world.canInject) return;
     if (_activePointer != null) return;
     _activePointer = pointerId;
     _pointerDown = true;
@@ -275,6 +282,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
 
     if (event.logicalKey == LogicalKeyboardKey.space) {
       if (event is KeyDownEvent && !_spaceDown && !_pointerDown) {
+        if (!world.canInject) return KeyEventResult.handled;
         _spaceDown = true;
         world.injector.startCharge();
         return KeyEventResult.handled;
