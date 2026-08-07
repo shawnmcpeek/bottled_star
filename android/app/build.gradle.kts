@@ -36,10 +36,9 @@ android {
 
     signingConfigs {
         create("release") {
-            // Codemagic injects these when the uploaded keystore is selected.
-            val cmPath = System.getenv("CM_KEYSTORE_PATH")
-            if (cmPath != null) {
-                storeFile = file(cmPath)
+            // Codemagic exports CM_* when android_signing is set in codemagic.yaml.
+            if (System.getenv("CI") == "true" && System.getenv("CM_KEYSTORE_PATH") != null) {
+                storeFile = file(System.getenv("CM_KEYSTORE_PATH")!!)
                 storePassword = System.getenv("CM_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("CM_KEY_ALIAS")
                 keyPassword = System.getenv("CM_KEY_PASSWORD")
