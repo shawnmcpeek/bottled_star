@@ -26,7 +26,8 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     Vector2? initialVelocity,
   })  : _spawnPosition = spawnPosition.clone(),
         _initialVelocity = initialVelocity?.clone(),
-        super(renderBody: false);
+        // Smaller tiers paint above larger ones so wedged lights stay readable.
+        super(renderBody: false, priority: 100 - tier.tier);
 
   ElementTier tier;
   final Vector2 _spawnPosition;
@@ -151,30 +152,34 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     final glowColor = TierPalette.glowFor(tier.tier);
     final energetic = tier.isHelium;
 
-    final glowRadius = r * (energetic ? 1.85 : 1.45);
+    final glowRadius = r * (energetic ? 1.7 : 1.22);
     final glowPaint = Paint()
-      ..color = glowColor
+      ..color = glowColor.withValues(alpha: energetic ? 1 : 0.75)
       ..maskFilter = MaskFilter.blur(
         BlurStyle.normal,
-        energetic ? 10 + 3 * math.sin(_pulse * 6) : 7,
+        energetic ? 9 + 3 * math.sin(_pulse * 6) : 5,
       );
     canvas.drawCircle(Offset.zero, glowRadius, glowPaint);
 
     if (energetic) {
       final aura = Paint()
         ..color = GameColors.heliumAura.withValues(
-          alpha: 0.25 + 0.12 * math.sin(_pulse * 8),
+          alpha: 0.22 + 0.1 * math.sin(_pulse * 8),
         )
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
-      canvas.drawCircle(Offset.zero, r * 2.1, aura);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      canvas.drawCircle(Offset.zero, r * 1.85, aura);
     }
 
+    // Hard disc clip — art PNGs can carry soft pixels past the physics radius.
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: Offset.zero, radius: r)));
     final art = _artImage();
     if (art != null) {
       _renderArt(canvas, art, r);
     } else {
       _renderProcedural(canvas, r);
     }
+    canvas.restore();
 
     canvas.restore();
   }

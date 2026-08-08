@@ -55,6 +55,9 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   final ValueNotifier<double> flashNotifier = ValueNotifier(0);
   final ValueNotifier<int> peakTierNotifier = ValueNotifier(0);
   final ValueNotifier<String?> endingLineNotifier = ValueNotifier(null);
+  final ValueNotifier<int> shotCountNotifier = ValueNotifier(0);
+  final ValueNotifier<int> kilonovaCountNotifier = ValueNotifier(0);
+  final ValueNotifier<String> collapseBestNotifier = ValueNotifier('');
 
   bool _pointerDown = false;
   int? _activePointer;
@@ -76,6 +79,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     bestElementNotifier.value = scoreStore.highestTier > 0
         ? ElementTier.fromTier(scoreStore.highestTier).symbol
         : '—';
+    collapseBestNotifier.value = scoreStore.collapseBestLabel;
 
     camera.viewfinder.anchor = Anchor.center;
     camera.viewfinder.position = Vector2.zero();
@@ -99,6 +103,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
 
   void _handleScore(int delta, int total) {
     scoreNotifier.value = total;
+    kilonovaCountNotifier.value = world.kilonovaCount;
   }
 
   void _handleTier(ElementTier tier) {
@@ -111,6 +116,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   }
 
   void _handleShotFired() {
+    shotCountNotifier.value = world.shotCount;
     firstRunGuide?.onShotFired();
   }
 
@@ -132,17 +138,21 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     endingNotifier.value = ending;
     endingCardNotifier.value = false;
     peakTierNotifier.value = world.highestTier;
-    final remnant = world.remnant?.state;
+    shotCountNotifier.value = world.shotCount;
+    kilonovaCountNotifier.value = world.kilonovaCount;
     final pick = await scoreStore.recordRun(
       score: world.score,
       highestTierReached: world.highestTier,
       ending: ending,
       tiersCreatedThisRun: Set<int>.from(world.tiersCreatedThisRun),
-      supernovaCount: remnant?.supernovaCount ?? 0,
-      consumedCount: remnant?.consumedCount ?? 0,
+      supernovaCount: world.supernovaCount,
+      kilonovaCount: world.kilonovaCount,
+      shotCount: world.shotCount,
+      voluntaryEnd: world.voluntaryEnd,
     );
     endingLineNotifier.value = pick.text;
     highScoreNotifier.value = scoreStore.highScore;
+    collapseBestNotifier.value = scoreStore.collapseBestLabel;
     if (scoreStore.highestTier > 0) {
       bestElementNotifier.value =
           ElementTier.fromTier(scoreStore.highestTier).symbol;
@@ -175,7 +185,13 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     lastUnlockNotifier.value = null;
     peakTierNotifier.value = 0;
     flashNotifier.value = 0;
+    shotCountNotifier.value = 0;
+    kilonovaCountNotifier.value = 0;
     camera.viewfinder.position = _cameraBase.clone();
+  }
+
+  void requestQuietEnd() {
+    world.requestQuietEnd();
   }
 
   @override

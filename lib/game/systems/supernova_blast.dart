@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
+import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/painting.dart';
 
+import '../collapse/collapse_tuning.dart';
+import '../collapse/remnant.dart';
 import '../components/nucleus.dart';
 import '../constants.dart';
 import 'bottled_star_world.dart';
@@ -44,10 +47,22 @@ class SupernovaBlast extends PositionComponent {
 
   double _shellT = 0;
   final Set<Nucleus> _processed = {};
+  final Set<Remnant> _processedRemnants = {};
   bool _remnantHooked = false;
 
   double get _progress =>
       (_shellT / GameConstants.kShellDuration).clamp(0.0, 1.0);
+
+  /// Read-only blast impulse magnitude at [dist] (uniform lobe). Used by
+  /// Collapse to derive the kilonova closing-speed threshold — do not retune
+  /// [GameConstants.kBlastImpulse] from Collapse.
+  static double impulseAtRadius(double dist) {
+    final reach = GameConstants.kBlastRadius;
+    if (dist >= reach || dist < 0) return 0;
+    final falloff =
+        math.pow(1.0 - (dist / reach).clamp(0.0, 1.0), 2).toDouble();
+    return GameConstants.kBlastImpulse * falloff;
+  }
 
   static double lobe(Vector2 pos, Vector2 origin, double axis) {
     final d = pos - origin;
@@ -111,6 +126,33 @@ class SupernovaBlast extends PositionComponent {
       }
     }
 
+    // Remnants are never vaporized — only pushed (Collapse kilonova fuel).
+    final remnantSystem = gameWorld.remnantSystem;
+    if (remnantSystem != null) {
+      for (final r in List<Remnant>.from(remnantSystem.remnants)) {
+        if (_processedRemnants.contains(r) ||
+            !r.isMounted ||
+            r.pendingDestroy) {
+          continue;
+        }
+        final pos = r.body.position;
+        final delta = pos - origin;
+        final dist = delta.length;
+        final lobeFactor = lobe(pos, origin, blastAxis);
+        if (dist > shellBase * lobeFactor) continue;
+        _processedRemnants.add(r);
+        if (dist < GameConstants.kBlastRadius * lobeFactor) {
+          _pushBody(
+            r.body,
+            delta,
+            dist,
+            lobeFactor,
+            impulseGain: CollapseTuning.remnantBlastImpulseGain,
+          );
+        }
+      }
+    }
+
     // Removals after the physics step (this component updates after stepDt).
     for (final n in pendingEject) {
       _eject(n);
@@ -127,12 +169,25 @@ class SupernovaBlast extends PositionComponent {
   }
 
   void _push(Nucleus n, Vector2 delta, double dist, double lobeFactor) {
+    _pushBody(n.body, delta, dist, lobeFactor);
+  }
+
+  void _pushBody(
+    Body body,
+    Vector2 delta,
+    double dist,
+    double lobeFactor, {
+    double impulseGain = 1.0,
+  }) {
     if (dist < 0.01) return;
     final reach = GameConstants.kBlastRadius * lobeFactor;
     final falloff =
         math.pow(1.0 - (dist / reach).clamp(0.0, 1.0), 2).toDouble();
-    n.body.applyLinearImpulse(
-      delta.normalized() * GameConstants.kBlastImpulse * falloff,
+    body.applyLinearImpulse(
+      delta.normalized() *
+          GameConstants.kBlastImpulse *
+          falloff *
+          impulseGain,
     );
   }
 

@@ -51,7 +51,7 @@ class EndingController extends Component {
   void start() {
     phase = switch (ending) {
       RunEnding.supernova => EndingPhase.compress,
-      RunEnding.blackHole => EndingPhase.hold,
+      RunEnding.kilonova => EndingPhase.hold,
       RunEnding.whiteDwarf => EndingPhase.hold,
     };
     phaseAge = 0;
@@ -75,10 +75,10 @@ class EndingController extends Component {
       );
     }
 
-    // Black hole: short dim beat then card.
-    if (ending == RunEnding.blackHole) {
-      onFlash(0.2);
-      onShake(0.35, 5);
+    // Kilonova card beat: short gold flash then card.
+    if (ending == RunEnding.kilonova) {
+      onFlash(0.18);
+      onShake(0.35, 6);
     }
   }
 
@@ -109,13 +109,12 @@ class EndingController extends Component {
         _updateWhiteDwarf(dt);
       case RunEnding.supernova:
         _updateSupernova(dt);
-      case RunEnding.blackHole:
-        _updateBlackHole(dt);
+      case RunEnding.kilonova:
+        _updateKilonova(dt);
     }
   }
 
-  void _updateBlackHole(double dt) {
-    // Brief hold while the chamber dims, then card.
+  void _updateKilonova(double dt) {
     world.chamber.displayedPressure =
         math.max(0, world.chamber.displayedPressure - dt / 0.8);
     for (final n in world.nuclei) {

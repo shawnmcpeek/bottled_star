@@ -38,29 +38,40 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
   Widget build(BuildContext context) {
     return MenuPageScaffold(
       title: 'Play',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Choose a mode',
-            style: GameFonts.prose(
-              fontSize: 16,
-              color: GameColors.mutedText,
-            ),
-          ),
-          const SizedBox(height: 22),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Choose a mode',
+                textAlign: TextAlign.center,
+                style: GameFonts.prose(
+                  fontSize: 16,
+                  color: GameColors.mutedText,
+                ),
+              ),
+              const SizedBox(height: 28),
           _ModeCard(
             mode: GameMode.classic,
-            best: _ready ? _classicScores.highScore : null,
+            bestLabel: _ready && _classicScores.highScore > 0
+                ? 'Best  ${_classicScores.highScore}'
+                : null,
             onTap: () => _open(GameMode.classic),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
           _ModeCard(
             mode: GameMode.collapse,
-            best: _ready ? _collapseScores.highScore : null,
+            bestLabel: _ready && _collapseScores.hasCollapseBest
+                ? 'Best  ${_collapseScores.collapseBestLabel}'
+                : null,
             onTap: () => _open(GameMode.collapse),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -70,12 +81,12 @@ class _ModeCard extends StatelessWidget {
   const _ModeCard({
     required this.mode,
     required this.onTap,
-    this.best,
+    this.bestLabel,
   });
 
   final GameMode mode;
   final VoidCallback onTap;
-  final int? best;
+  final String? bestLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -85,12 +96,13 @@ class _ModeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(4),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 mode.label,
+                textAlign: TextAlign.center,
                 style: GameFonts.ui(
                   fontSize: 22,
                   weight: FontWeight.w600,
@@ -99,15 +111,17 @@ class _ModeCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 mode.blurb,
+                textAlign: TextAlign.center,
                 style: GameFonts.prose(
                   fontSize: 15,
                   color: GameColors.mutedText,
                 ),
               ),
-              if (best != null && best! > 0) ...[
+              if (bestLabel != null) ...[
                 const SizedBox(height: 10),
                 Text(
-                  'Best  $best',
+                  bestLabel!,
+                  textAlign: TextAlign.center,
                   style: GameFonts.ui(
                     fontSize: 13,
                     weight: FontWeight.w500,

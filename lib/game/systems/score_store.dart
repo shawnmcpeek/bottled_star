@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../content/endings/black_hole_messages.dart';
+import '../../content/endings/kilonova_messages.dart';
 import '../constants.dart';
 import '../modes/game_mode.dart';
 import 'ending_messages.dart';
@@ -18,6 +18,11 @@ class ScoreStore {
   int totalRuns = 0;
   RunEnding? lastEnding;
 
+  /// Collapse board: lexicographic (kilonovas desc, then shots asc).
+  int bestKilonovas = 0;
+  int bestShots = 0;
+  bool hasCollapseBest = false;
+
   final Set<String> firedMilestones = {};
   final Map<String, Set<int>> messageBagSeen = {};
   String? lastMessageId;
@@ -25,11 +30,28 @@ class ScoreStore {
 
   String get _scoreKey => mode.scoreKey;
   String get _tierKey => mode.highestTierKey;
+  String get _kilonovaKey => 'kilonovas_${mode.name}';
+  String get _shotsKey => 'shots_${mode.name}';
+
+  String get collapseBestLabel {
+    if (!hasCollapseBest) return '';
+    return 'Kilonovas $bestKilonovas · $bestShots shots';
+  }
+
+  static int compareCollapse({
+    required int aKilonovas,
+    required int aShots,
+    required int bKilonovas,
+    required int bShots,
+  }) {
+    final byKilonova = bKilonovas.compareTo(aKilonovas);
+    if (byKilonova != 0) return byKilonova;
+    return aShots.compareTo(bShots);
+  }
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     highScore = prefs.getInt(_scoreKey) ??
-        // Migrate classic from the pre-mode key once.
         (mode == GameMode.classic
             ? prefs.getInt(GameConstants.prefsHighScore) ?? 0
             : 0);
@@ -37,6 +59,10 @@ class ScoreStore {
         (mode == GameMode.classic
             ? prefs.getInt(GameConstants.prefsHighestTier) ?? 0
             : 0);
+    bestKilonovas = prefs.getInt(_kilonovaKey) ?? 0;
+    bestShots = prefs.getInt(_shotsKey) ?? 0;
+    hasCollapseBest = mode == GameMode.collapse &&
+        (bestKilonovas > 0 || prefs.containsKey(_kilonovaKey));
     totalRuns = prefs.getInt(GameConstants.prefsTotalRuns) ?? 0;
     lastEnding =
         RunEnding.fromPrefs(prefs.getString(GameConstants.prefsLastEnding));
@@ -74,17 +100,19 @@ class ScoreStore {
     required RunEnding ending,
     required Set<int> tiersCreatedThisRun,
     int supernovaCount = 0,
-    int consumedCount = 0,
+    int kilonovaCount = 0,
+    int shotCount = 0,
+    bool voluntaryEnd = false,
     Random? random,
   }) async {
     final previousHighScore = highScore;
     final rng = random ?? Random();
 
     final EndingMessagePick pick;
-    if (ending == RunEnding.blackHole) {
-      pick = _selectBlackHole(
-        supernovaCount: supernovaCount,
-        consumedCount: consumedCount,
+    if (ending == RunEnding.kilonova) {
+      pick = _selectKilonova(
+        kilonovaCount: kilonovaCount,
+        voluntaryEnd: voluntaryEnd,
         rng: rng,
       );
     } else {
@@ -108,9 +136,28 @@ class ScoreStore {
     lastMessageId = pick.id;
     lastEndingLine = pick.text;
 
-    if (score > highScore) {
-      highScore = score;
+    if (mode == GameMode.collapse) {
+      final better = !hasCollapseBest ||
+          compareCollapse(
+                aKilonovas: kilonovaCount,
+                aShots: shotCount,
+                bKilonovas: bestKilonovas,
+                bShots: bestShots,
+              ) <
+              0;
+      if (better) {
+        bestKilonovas = kilonovaCount;
+        bestShots = shotCount;
+        hasCollapseBest = true;
+      }
+      // Keep a scalar highScore as total points for legacy UI paths.
+      if (score > highScore) highScore = score;
+    } else {
+      if (score > highScore) {
+        highScore = score;
+      }
     }
+
     if (highestTierReached > highestTier) {
       highestTier = highestTierReached;
     }
@@ -119,7 +166,10 @@ class ScoreStore {
     await prefs.setInt(GameConstants.prefsTotalRuns, totalRuns);
     await prefs.setInt(_scoreKey, highScore);
     await prefs.setInt(_tierKey, highestTier);
-    // Keep legacy classic keys in sync for older menu code paths.
+    if (mode == GameMode.collapse && hasCollapseBest) {
+      await prefs.setInt(_kilonovaKey, bestKilonovas);
+      await prefs.setInt(_shotsKey, bestShots);
+    }
     if (mode == GameMode.classic) {
       await prefs.setInt(GameConstants.prefsHighScore, highScore);
       await prefs.setInt(GameConstants.prefsHighestTier, highestTier);
@@ -140,26 +190,26 @@ class ScoreStore {
     return pick;
   }
 
-  EndingMessagePick _selectBlackHole({
-    required int supernovaCount,
-    required int consumedCount,
+  EndingMessagePick _selectKilonova({
+    required int kilonovaCount,
+    required bool voluntaryEnd,
     required Random rng,
   }) {
-    final milestoneId = BlackHoleMessages.milestoneFor(
-      supernovaCount: supernovaCount,
-      consumedCount: consumedCount,
+    final milestoneId = KilonovaMessages.milestoneFor(
+      kilonovaCount: kilonovaCount,
+      voluntaryEnd: voluntaryEnd,
       fired: firedMilestones,
     );
     if (milestoneId != null) {
       firedMilestones.add(milestoneId);
       return EndingMessagePick(
         id: 'milestone:$milestoneId',
-        text: BlackHoleMessages.milestones[milestoneId]!,
+        text: KilonovaMessages.milestones[milestoneId]!,
       );
     }
 
-    final drawn = BlackHoleMessages.drawPool(
-      supernovaCount: supernovaCount,
+    final drawn = KilonovaMessages.drawPool(
+      kilonovaCount: kilonovaCount,
       bagSeen: messageBagSeen,
       rng: rng,
       lastMessageId: lastMessageId,

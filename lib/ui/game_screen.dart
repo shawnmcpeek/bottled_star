@@ -14,6 +14,7 @@ import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
 import 'howto/how_to_play_overlay.dart';
 import 'menu/display_name_dialog.dart';
+import 'quiet_end_button.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key, this.mode = GameMode.classic});
@@ -122,6 +123,28 @@ class _GameScreenState extends State<GameScreen> {
                 );
               },
             ),
+            if (widget.mode == GameMode.collapse)
+              ValueListenableBuilder<bool>(
+                valueListenable: _game.gameOverNotifier,
+                builder: (_, over, _) {
+                  if (over) return const SizedBox.shrink();
+                  return ValueListenableBuilder<int>(
+                    valueListenable: _game.kilonovaCountNotifier,
+                    builder: (_, kilos, _) {
+                      return ValueListenableBuilder<int>(
+                        valueListenable: _game.shotCountNotifier,
+                        builder: (_, shots, _) {
+                          return QuietEndButton(
+                            kilonovaCount: kilos,
+                            shotCount: shots,
+                            onConfirmEnd: _game.requestQuietEnd,
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             if (_bootstrapped && _showGuide && _guide != null)
               HowToPlayOverlay(
                 guide: _guide!,
@@ -161,6 +184,28 @@ class HudOverlay extends StatelessWidget {
                             '$score',
                             style: GameFonts.score(weight: FontWeight.w500),
                           ),
+                          if (game.mode == GameMode.collapse) ...[
+                            const SizedBox(height: 10),
+                            ValueListenableBuilder<int>(
+                              valueListenable: game.kilonovaCountNotifier,
+                              builder: (_, kilos, _) {
+                                return Text(
+                                  'KILONOVAS  $kilos',
+                                  style: GameFonts.label(fontSize: 12),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 4),
+                            ValueListenableBuilder<int>(
+                              valueListenable: game.shotCountNotifier,
+                              builder: (_, shots, _) {
+                                return Text(
+                                  'SHOTS  $shots',
+                                  style: GameFonts.label(fontSize: 12),
+                                );
+                              },
+                            ),
+                          ],
                         ],
                       );
                     },
@@ -170,19 +215,35 @@ class HudOverlay extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('BEST', style: GameFonts.label()),
-                    ValueListenableBuilder<int>(
-                      valueListenable: game.highScoreNotifier,
-                      builder: (_, best, _) {
-                        return Text(
-                          '$best',
-                          style: GameFonts.score(
-                            fontSize: 22,
-                            weight: FontWeight.w500,
-                            color: GameColors.rimMetal,
-                          ),
-                        );
-                      },
-                    ),
+                    if (game.mode == GameMode.collapse)
+                      ValueListenableBuilder<String>(
+                        valueListenable: game.collapseBestNotifier,
+                        builder: (_, best, _) {
+                          return Text(
+                            best.isEmpty ? '—' : best,
+                            textAlign: TextAlign.right,
+                            style: GameFonts.ui(
+                              fontSize: 14,
+                              weight: FontWeight.w500,
+                              color: GameColors.rimMetal,
+                            ),
+                          );
+                        },
+                      )
+                    else
+                      ValueListenableBuilder<int>(
+                        valueListenable: game.highScoreNotifier,
+                        builder: (_, best, _) {
+                          return Text(
+                            '$best',
+                            style: GameFonts.score(
+                              fontSize: 22,
+                              weight: FontWeight.w500,
+                              color: GameColors.rimMetal,
+                            ),
+                          );
+                        },
+                      ),
                     const SizedBox(height: 6),
                     ValueListenableBuilder<String>(
                       valueListenable: game.bestElementNotifier,
@@ -394,7 +455,7 @@ class _EndingCardState extends State<_EndingCard> {
   String? _boardStatus;
 
   bool get _isSupernova => widget.ending == RunEnding.supernova;
-  bool get _isBlackHole => widget.ending == RunEnding.blackHole;
+  bool get _isKilonova => widget.ending == RunEnding.kilonova;
 
   @override
   void initState() {
@@ -443,26 +504,26 @@ class _EndingCardState extends State<_EndingCard> {
     });
   }
 
-  String get _eyebrow => _isBlackHole
-      ? 'EVENT HORIZON'
+  String get _eyebrow => _isKilonova
+      ? (widget.game.world.voluntaryEnd ? 'BANKED' : 'HEAVY ELEMENTS')
       : _isSupernova
           ? 'CORE COLLAPSE'
           : 'CONTAINMENT LOST';
 
-  String get _title => _isBlackHole
+  String get _title => _isKilonova
       ? 'COLLAPSE'
       : _isSupernova
           ? 'SUPERNOVA'
           : 'WHITE DWARF';
 
-  Color get _eyebrowColor => _isBlackHole || _isSupernova
+  Color get _eyebrowColor => _isKilonova || _isSupernova
       ? GameColors.rimWarning
       : GameColors.mutedText;
 
   @override
   Widget build(BuildContext context) {
     final peak = ElementTier.fromTier(widget.game.peakTierNotifier.value);
-    final remnant = widget.game.world.remnant?.state;
+    final shots = widget.game.world.shotCount;
     final screenW = MediaQuery.sizeOf(context).width;
     final maxW = screenW * 0.8;
 
@@ -487,10 +548,11 @@ class _EndingCardState extends State<_EndingCard> {
                     style: GameFonts.endingTitle(),
                   ),
                   const SizedBox(height: 24),
-                  if (_isBlackHole) ...[
+                  if (_isKilonova) ...[
                     Text(
-                      '${remnant?.supernovaCount ?? 0} supernovae  ·  '
-                      '${remnant?.consumedCount ?? 0} nuclei consumed',
+                      'Kilonovas ${widget.game.world.kilonovaCount}  ·  '
+                      '$shots shots  ·  '
+                      '${widget.game.world.supernovaCount} supernovae',
                       textAlign: TextAlign.center,
                       style: GameFonts.ui(
                         fontSize: 14,
@@ -498,12 +560,17 @@ class _EndingCardState extends State<_EndingCard> {
                         color: GameColors.mutedText,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    ValueListenableBuilder<int>(
-                      valueListenable: widget.game.scoreNotifier,
-                      builder: (_, score, _) =>
-                          _StatLine(label: 'Score', value: '$score'),
-                    ),
+                    if (widget.game.world.voluntaryEnd) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'You let it go quiet.',
+                        textAlign: TextAlign.center,
+                        style: GameFonts.prose(
+                          fontSize: 14,
+                          color: GameColors.mutedText,
+                        ),
+                      ),
+                    ],
                   ] else ...[
                     _StatLine(
                       label: 'Peak element',
@@ -514,6 +581,16 @@ class _EndingCardState extends State<_EndingCard> {
                       valueListenable: widget.game.scoreNotifier,
                       builder: (_, score, _) =>
                           _StatLine(label: 'Score', value: '$score'),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '$shots nuclei injected',
+                      textAlign: TextAlign.center,
+                      style: GameFonts.ui(
+                        fontSize: 13,
+                        weight: FontWeight.w500,
+                        color: GameColors.mutedText.withValues(alpha: 0.75),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 22),

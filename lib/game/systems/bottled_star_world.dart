@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 
-import '../collapse/remnant.dart';
+import '../collapse/remnant_system.dart';
 import '../components/chamber.dart';
 import '../components/effects.dart';
 import '../components/injector.dart';
@@ -68,7 +68,7 @@ class BottledStarWorld extends Forge2DWorld {
   late final ChamberWall chamber;
   final Injector injector = Injector();
   late final ChamberBackdrop backdrop;
-  Remnant? remnant;
+  RemnantSystem? remnantSystem;
 
   final List<Nucleus> nuclei = [];
   final List<void Function()> _postStepOps = [];
@@ -77,11 +77,12 @@ class BottledStarWorld extends Forge2DWorld {
 
   int score = 0;
   int highestTier = 0;
+  int shotCount = 0;
   bool gameOver = false;
   bool inputEnabled = true;
   bool physicsEnabled = true;
   bool rimPressureEnabled = true;
-  bool _collapseBeatLock = false;
+  bool voluntaryEnd = false;
 
   double _displayedPressure = 0;
   double _injectorLockout = 0;
@@ -93,7 +94,10 @@ class BottledStarWorld extends Forge2DWorld {
 
   bool get isCollapse => mode == GameMode.collapse;
   bool get canInject =>
-      inputEnabled && !gameOver && _injectorLockout <= 0 && !_collapseBeatLock;
+      inputEnabled && !gameOver && _injectorLockout <= 0;
+
+  int get kilonovaCount => remnantSystem?.kilonovaCount ?? 0;
+  int get supernovaCount => remnantSystem?.supernovaCount ?? 0;
 
   void deferPostStep(void Function() op) => _postStepOps.add(op);
 
@@ -106,20 +110,22 @@ class BottledStarWorld extends Forge2DWorld {
     }
   }
 
-  void beginCollapseBeat() {
-    _collapseBeatLock = true;
-    injector.cancelCharge();
-  }
-
-  void endCollapseBeat() {
-    _collapseBeatLock = false;
-  }
-
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     mergeSystem = MergeSystem(this);
     injectionQueue.reset();
+
+    // Collapse packs heavy remnants against light nuclei — give the solver
+    // more correction budget. Reset when Classic loads so shared settings
+    // don't leak across modes.
+    if (isCollapse) {
+      positionIterations = 20;
+      maxLinearCorrection = 0.45;
+    } else {
+      positionIterations = 10;
+      maxLinearCorrection = 0.2;
+    }
 
     backdrop = ChamberBackdrop();
     await add(backdrop);
@@ -128,15 +134,13 @@ class BottledStarWorld extends Forge2DWorld {
     await add(chamber);
 
     if (isCollapse) {
-      remnant = Remnant(gameWorld: this);
-      await add(remnant!);
+      remnantSystem = RemnantSystem(this);
     }
 
     injector.loadedTier = injectionQueue.current;
     await add(injector);
     _publishQueue();
 
-    // Catch resting pairs present at load / after hot restart.
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
   }
@@ -150,9 +154,10 @@ class BottledStarWorld extends Forge2DWorld {
     inputEnabled = true;
     physicsEnabled = true;
     rimPressureEnabled = true;
-    _collapseBeatLock = false;
+    voluntaryEnd = false;
     score = 0;
     highestTier = 0;
+    shotCount = 0;
     mergeSystem.chainDepth = 0;
     injectionQueue.reset();
     tiersCreatedThisRun.clear();
@@ -161,19 +166,19 @@ class BottledStarWorld extends Forge2DWorld {
     _pendingSupernovaA = null;
     _pendingSupernovaB = null;
     _postStepOps.clear();
-    remnant?.reset();
+    remnantSystem?.reset();
 
     for (final n in List<Nucleus>.from(nuclei)) {
       if (n.isMounted) n.removeFromParent();
     }
     nuclei.clear();
 
-    // Clear leftover ending visuals
     children.whereType<SeedParticle>().toList().forEach((c) => c.removeFromParent());
     children.whereType<RemnantStar>().toList().forEach((c) => c.removeFromParent());
     children.whereType<ScreenFlash>().toList().forEach((c) => c.removeFromParent());
     children.whereType<SupernovaBlast>().toList().forEach((c) => c.removeFromParent());
     children.whereType<EjectStreak>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<KilonovaBurst>().toList().forEach((c) => c.removeFromParent());
 
     chamber
       ..displayedPressure = 0
@@ -234,10 +239,6 @@ class BottledStarWorld extends Forge2DWorld {
 
   bool fireInjector() {
     if (!inputEnabled || gameOver || _injectorLockout > 0) return false;
-    if (_collapseBeatLock) {
-      injector.cancelCharge();
-      return false;
-    }
     final power01 = injector.releaseCharge();
     if (power01 == null) return false;
 
@@ -261,6 +262,7 @@ class BottledStarWorld extends Forge2DWorld {
       asProjectile: tier.isHydrogen,
       velocity: velocity,
     );
+    shotCount++;
     onShotFired();
     return true;
   }
@@ -269,10 +271,17 @@ class BottledStarWorld extends Forge2DWorld {
     endingController?.trySkip();
   }
 
-  /// Collapse only — called when a mid-run blast shell finishes.
-  void onSupernovaBlastResolved(Vector2 origin) {
+  /// Collapse voluntary end — bank kilonovas / shot tiebreaker.
+  void requestQuietEnd() {
     if (!isCollapse || gameOver) return;
-    remnant?.onSupernova(origin);
+    voluntaryEnd = true;
+    _beginRunEnding();
+  }
+
+  /// Collapse only — called when a mid-run blast shell finishes.
+  void onSupernovaBlastResolved(Vector2 fusionPoint) {
+    if (!isCollapse || gameOver) return;
+    remnantSystem?.spawnAt(fusionPoint);
   }
 
   @override
@@ -286,14 +295,13 @@ class BottledStarWorld extends Forge2DWorld {
         if (n.isMounted) n.applyRadialGravity();
       }
       if (isCollapse) {
-        remnant?.applyForces();
+        remnantSystem?.applyGravity();
       }
 
       physicsWorld.stepDt(dt);
       mergeSystem.scanTouchingPairs();
       mergeSystem.resolve();
       drainPostStep();
-      remnant?.drainDeferred();
 
       if (mergeSystem.scoreGainedThisStep > 0) {
         score += mergeSystem.scoreGainedThisStep;
@@ -303,21 +311,9 @@ class BottledStarWorld extends Forge2DWorld {
 
       _scanSupernova();
       _resolveQueuedSupernova();
-
-      if (isCollapse) {
-        remnant?.tick(dt);
-        drainPostStep();
-        remnant?.drainDeferred();
-        if (remnant != null && remnant!.state.chamberConsumed) {
-          _beginConsumedEnding();
-          return;
-        }
-      }
+      drainPostStep();
 
       _updateRimPressure(dt);
-    } else if (!physicsEnabled) {
-      // Ending cinematics still need component updates via Flame;
-      // we intentionally do not step Box2D.
     }
   }
 
@@ -403,32 +399,6 @@ class BottledStarWorld extends Forge2DWorld {
 
     _injectorLockout = GameConstants.kSupernovaLockoutSeconds;
     injector.cancelCharge();
-    // Rim accumulator keeps running — blast risk is intentional.
-  }
-
-  void _beginConsumedEnding() {
-    if (gameOver) return;
-    gameOver = true;
-    inputEnabled = false;
-    physicsEnabled = false;
-    rimPressureEnabled = false;
-    injector.cancelCharge();
-
-    activeEnding = RunEnding.blackHole;
-
-    for (final n in nuclei) {
-      if (n.isMounted) n.body.linearVelocity.setZero();
-    }
-
-    endingController = EndingController(
-      world: this,
-      ending: activeEnding!,
-      onCardReady: (ending) => onEndingCard(ending),
-      onFlash: onFlash,
-      onShake: onShake,
-    )..start();
-    add(endingController!);
-    onGameOver(activeEnding!);
   }
 
   void _beginRunEnding() {
@@ -439,12 +409,19 @@ class BottledStarWorld extends Forge2DWorld {
     rimPressureEnabled = false;
     injector.cancelCharge();
 
-    activeEnding = highestTier >= ElementTier.iron.tier
-        ? RunEnding.supernova
-        : RunEnding.whiteDwarf;
+    if (isCollapse && kilonovaCount >= 1) {
+      activeEnding = RunEnding.kilonova;
+    } else if (highestTier >= ElementTier.iron.tier) {
+      activeEnding = RunEnding.supernova;
+    } else {
+      activeEnding = RunEnding.whiteDwarf;
+    }
 
     for (final n in nuclei) {
       if (n.isMounted) n.body.linearVelocity.setZero();
+    }
+    for (final r in remnantSystem?.remnants ?? const []) {
+      if (r.isMounted) r.body.linearVelocity.setZero();
     }
 
     endingController = EndingController(

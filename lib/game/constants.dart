@@ -83,11 +83,13 @@ abstract final class GameConstants {
 enum RunEnding {
   whiteDwarf,
   supernova,
-  blackHole;
+  kilonova;
 
   String get prefsValue => name;
   static RunEnding? fromPrefs(String? value) {
     if (value == null) return null;
+    // Migrate abandoned Collapse ending name.
+    if (value == 'blackHole') return RunEnding.kilonova;
     for (final e in RunEnding.values) {
       if (e.name == value) return e;
     }
