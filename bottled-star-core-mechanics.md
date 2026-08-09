@@ -87,21 +87,21 @@ storeFile=../bottled-star-upload.jks
 
 ## 0d. Google Play publishing (non-secret)
 
-Service account created Aug 2026 for Codemagic → Play uploads. JSON key is gitignored; full JSON contents live in Codemagic as secure env `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS`.
+Service account created Aug 2026 for Codemagic → Play uploads. JSON key is gitignored; full JSON contents live in Codemagic as secure env `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS`.
 
 | Field | Value |
 |:--|:--|
 | Cloud / Firebase project | `bottled-star` |
 | Service account email | `codemagic-play@bottled-star.iam.gserviceaccount.com` |
 | Local key file (ignored) | `bottled-star-10dbe909c7b2.json` |
-| Codemagic env | `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` |
+| Codemagic env | `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS` |
 | Play package | `pro.daddoodev.bottledstar` |
 | Play Android Developer API | Enabled / connected |
 | Play Console permissions | Granted to the service account email |
 
 Still needed: App Store Connect API key (`.p8`) if not done.
 
-**Codemagic:** Do **not** use the Flutter workflow editor (flavors are stuck there). Use `codemagic.yaml` workflows instead — `Android Release (AAB)` / `iOS Release (IPA)`. Keystore reference name in Code signing identities must be `bottled_star`. Variable group `google_play` must contain `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS`.
+**Codemagic:** Do **not** use the Flutter workflow editor (flavors are stuck there). Use `codemagic.yaml` workflows instead — `Android Release (AAB)` / `iOS Release (IPA)`. Keystore reference name in Code signing identities must be `bottled_star`. Variable group `google_play` must contain `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS` (not the deprecated `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` alias).
 
 ### Explicitly out of scope for this build
 

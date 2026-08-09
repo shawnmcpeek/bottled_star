@@ -13,6 +13,7 @@ import '../game/systems/settings_store.dart';
 import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
 import 'howto/how_to_play_overlay.dart';
+import 'leave_run_button.dart';
 import 'menu/display_name_dialog.dart';
 import 'quiet_end_button.dart';
 
@@ -256,6 +257,8 @@ class HudOverlay extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(width: 4),
+                LeaveRunButton(game: game),
               ],
             ),
             const Spacer(),
