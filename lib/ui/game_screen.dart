@@ -8,8 +8,11 @@ import '../game/element_tier.dart';
 import '../game/modes/game_mode.dart';
 import '../game/systems/first_run_guide.dart';
 import '../game/systems/leaderboard_service.dart';
+import '../game/systems/haptics_controller.dart';
+import '../game/systems/music_controller.dart';
 import '../game/systems/score_store.dart';
 import '../game/systems/settings_store.dart';
+import '../game/systems/sfx_controller.dart';
 import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
 import 'howto/how_to_play_overlay.dart';
@@ -26,7 +29,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   late final ScoreStore _scoreStore;
   late final SettingsStore _settings;
   late final BottledStarGame _game;
@@ -37,6 +40,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scoreStore = ScoreStore(mode: widget.mode);
     _settings = SettingsStore();
     _game = BottledStarGame(scoreStore: _scoreStore, mode: widget.mode);
@@ -46,6 +50,16 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _bootstrap() async {
     await _settings.load();
+    if (!mounted) return;
+    SfxController.instance.enabled = _settings.sfxEnabled;
+    HapticsController.instance.enabled = _settings.hapticsEnabled;
+    await MusicController.instance.setVolume(_settings.musicVolume);
+    await SfxController.instance.setVolume(_settings.sfxVolume);
+    // Prefer kickoff from mode select (user gesture); retry if blocked.
+    await MusicController.instance.ensurePlaying(
+      enabled: _settings.soundEnabled,
+      mode: widget.mode,
+    );
     if (!mounted) return;
     if (!_settings.howToPlaySeen) {
       final guide = FirstRunGuide(onCompleted: _finishGuide);
@@ -57,6 +71,20 @@ class _GameScreenState extends State<GameScreen> {
       });
     } else {
       setState(() => _bootstrapped = true);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final music = MusicController.instance;
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        music.pause();
+      case AppLifecycleState.resumed:
+        music.resume(enabled: _settings.soundEnabled);
     }
   }
 
@@ -90,6 +118,8 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    MusicController.instance.stop();
     _game.gameOverNotifier.removeListener(_onGameOverChanged);
     _game.firstRunGuide = null;
     _guide?.dispose();
@@ -100,7 +130,15 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Focus(
+      body: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) {
+          MusicController.instance.ensurePlaying(
+            enabled: _settings.soundEnabled,
+            mode: widget.mode,
+          );
+        },
+        child: Focus(
         autofocus: true,
         child: Stack(
           fit: StackFit.expand,
@@ -152,6 +190,7 @@ class _GameScreenState extends State<GameScreen> {
                 onSkip: _skipGuide,
               ),
           ],
+        ),
         ),
       ),
     );

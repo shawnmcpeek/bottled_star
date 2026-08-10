@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../game/element_tier.dart';
 import '../../game/systems/score_store.dart';
+import '../../game/systems/sfx_controller.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
 import 'menu_atmosphere.dart';
@@ -22,6 +25,8 @@ class _MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     _load();
+    // Warm SFX while the player is still on the menu.
+    unawaited(SfxController.instance.preload());
   }
 
   Future<void> _load() async {

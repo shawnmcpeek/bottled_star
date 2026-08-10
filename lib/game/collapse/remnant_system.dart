@@ -6,6 +6,8 @@ import 'package:flutter/painting.dart';
 import '../components/effects.dart';
 import '../components/nucleus.dart';
 import '../systems/bottled_star_world.dart';
+import '../systems/haptics_controller.dart';
+import '../systems/sfx_controller.dart';
 import 'collapse_tuning.dart';
 import 'kilonova.dart';
 import 'remnant.dart';
@@ -70,6 +72,8 @@ class RemnantSystem {
     _emitHeavyElementBurst(midpoint);
     _clearNearbyPieces(midpoint);
 
+    SfxController.instance.playSpringHit();
+    HapticsController.instance.playBlast();
     gameWorld.score += CollapseTuning.kilonovaScore;
     gameWorld.onScore(CollapseTuning.kilonovaScore, gameWorld.score);
     gameWorld.onFlash(0.16);

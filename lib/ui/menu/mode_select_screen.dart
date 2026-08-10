@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../game/modes/game_mode.dart';
+import '../../game/systems/haptics_controller.dart';
+import '../../game/systems/music_controller.dart';
 import '../../game/systems/score_store.dart';
+import '../../game/systems/settings_store.dart';
+import '../../game/systems/sfx_controller.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
 import 'menu_page_scaffold.dart';
@@ -16,6 +20,7 @@ class ModeSelectScreen extends StatefulWidget {
 class _ModeSelectScreenState extends State<ModeSelectScreen> {
   final ScoreStore _classicScores = ScoreStore(mode: GameMode.classic);
   final ScoreStore _collapseScores = ScoreStore(mode: GameMode.collapse);
+  final SettingsStore _settings = SettingsStore();
   bool _ready = false;
 
   @override
@@ -25,12 +30,32 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
   }
 
   Future<void> _load() async {
-    await Future.wait([_classicScores.load(), _collapseScores.load()]);
+    await Future.wait([
+      _classicScores.load(),
+      _collapseScores.load(),
+      _settings.load(),
+      SfxController.instance.preload().catchError((_) {}),
+    ]);
     if (mounted) setState(() => _ready = true);
   }
 
   Future<void> _open(GameMode mode) async {
+    // Start in the tap handler so web autoplay policies allow audio.
+    SfxController.instance.enabled = _settings.sfxEnabled;
+    HapticsController.instance.enabled = _settings.hapticsEnabled;
+    await Future.wait([
+      MusicController.instance.setVolume(_settings.musicVolume),
+      SfxController.instance.setVolume(_settings.sfxVolume),
+      MusicController.instance.startForRun(
+        enabled: _settings.soundEnabled,
+        mode: mode,
+      ),
+      SfxController.instance.preload().catchError((_) {}),
+    ]);
+    if (!mounted) return;
     await Navigator.of(context).pushNamed('/play', arguments: mode);
+    await MusicController.instance.stop();
+    await SfxController.instance.stopAll();
     await _load();
   }
 

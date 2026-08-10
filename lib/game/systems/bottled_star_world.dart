@@ -13,6 +13,8 @@ import '../modes/game_mode.dart';
 import 'ending_controller.dart';
 import 'injection_queue.dart';
 import 'merge_system.dart';
+import 'haptics_controller.dart';
+import 'sfx_controller.dart';
 import 'supernova_blast.dart';
 
 typedef ScoreCallback = void Function(int delta, int total);
@@ -390,6 +392,8 @@ class BottledStarWorld extends Forge2DWorld {
     score += GameConstants.kSupernovaScore;
     onScore(GameConstants.kSupernovaScore, score);
 
+    SfxController.instance.playSpringHit();
+    HapticsController.instance.playBlast();
     add(SupernovaBlast(origin: origin, gameWorld: this));
 
     chamber.flare = 1.0;

@@ -76,8 +76,12 @@ abstract final class GameConstants {
   static const String prefsLastMessageId = 'last_message_id';
   static const String prefsHowToPlaySeen = 'how_to_play_seen';
   static const String prefsSoundEnabled = 'sound_enabled';
+  static const String prefsSfxEnabled = 'sfx_enabled';
+  static const String prefsMusicVolume = 'music_volume';
+  static const String prefsSfxVolume = 'sfx_volume';
   static const String prefsHapticsEnabled = 'haptics_enabled';
   static const String prefsDisplayName = 'display_name';
+  static const String prefsLastMusicIndex = 'last_music_index';
 }
 
 enum RunEnding {

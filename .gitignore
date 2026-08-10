@@ -48,6 +48,11 @@ app.*.map.json
 *.jks
 *.keystore
 *.p8
+
+# Music sources (keep compressed loops only)
+assets/music/*.zip
+assets/music/_src/
+assets/sfx/*.wav
 *.p12
 *.mobileprovision
 .env
