@@ -10,6 +10,7 @@ import 'constants.dart';
 import 'element_art.dart';
 import 'element_tier.dart';
 import 'modes/game_mode.dart';
+import 'systems/achievement_hooks.dart';
 import 'systems/bottled_star_world.dart';
 import 'systems/first_run_guide.dart';
 import 'systems/score_store.dart';
@@ -150,6 +151,13 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       shotCount: world.shotCount,
       voluntaryEnd: world.voluntaryEnd,
     );
+    await AchievementHooks.onPeakTier(world.highestTier);
+    if (ending == RunEnding.supernova) {
+      await AchievementHooks.onSupernovaEnding();
+    }
+    if (world.voluntaryEnd && mode == GameMode.collapse) {
+      await AchievementHooks.onQuietEnd();
+    }
     endingLineNotifier.value = pick.text;
     highScoreNotifier.value = scoreStore.highScore;
     collapseBestNotifier.value = scoreStore.collapseBestLabel;

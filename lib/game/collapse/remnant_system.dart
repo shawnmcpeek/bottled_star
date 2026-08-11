@@ -8,6 +8,7 @@ import '../components/nucleus.dart';
 import '../systems/bottled_star_world.dart';
 import '../systems/haptics_controller.dart';
 import '../systems/sfx_controller.dart';
+import '../systems/achievement_hooks.dart';
 import 'collapse_tuning.dart';
 import 'kilonova.dart';
 import 'remnant.dart';
@@ -74,6 +75,8 @@ class RemnantSystem {
 
     SfxController.instance.playSpringHit();
     HapticsController.instance.playBlast();
+    // ignore: unawaited_futures
+    AchievementHooks.onKilonova(countThisRun: kilonovaCount);
     gameWorld.score += CollapseTuning.kilonovaScore;
     gameWorld.onScore(CollapseTuning.kilonovaScore, gameWorld.score);
     gameWorld.onFlash(0.16);

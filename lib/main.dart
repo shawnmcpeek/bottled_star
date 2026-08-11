@@ -4,19 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
+import 'game/modes/game_mode.dart';
+import 'game/systems/achievement_store.dart';
+import 'game/systems/purchases_controller.dart';
 import 'theme/app_theme.dart';
 import 'theme/game_colors.dart';
 import 'ui/game_screen.dart';
+import 'ui/menu/achievements_screen.dart';
+import 'ui/menu/challenge_iap_preview_screen.dart';
 import 'ui/menu/credits_screen.dart';
 import 'ui/menu/menu_screen.dart';
 import 'ui/menu/mode_select_screen.dart';
 import 'ui/menu/options_screen.dart';
 import 'ui/menu/scores_screen.dart';
-import 'game/modes/game_mode.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initFirebase();
+  await AchievementStore.instance.load();
+  await PurchasesController.instance.init();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
@@ -68,8 +74,10 @@ class BottledStarApp extends StatelessWidget {
           return GameScreen(mode: mode);
         },
         '/scores': (_) => const ScoresScreen(),
+        '/achievements': (_) => const AchievementsScreen(),
         '/options': (_) => const OptionsScreen(),
         '/credits': (_) => const CreditsScreen(),
+        '/iap-preview': (_) => const ChallengeIapPreviewScreen(),
       },
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../game/modes/game_mode.dart';
 import '../../game/systems/leaderboard_service.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
@@ -12,14 +13,34 @@ class ScoresScreen extends StatefulWidget {
   State<ScoresScreen> createState() => _ScoresScreenState();
 }
 
-class _ScoresScreenState extends State<ScoresScreen> {
+class _ScoresScreenState extends State<ScoresScreen>
+    with SingleTickerProviderStateMixin {
   final LeaderboardService _boards = LeaderboardService();
+  late final TabController _modeTab;
   late Future<_BoardBundle> _future;
+  GameMode _mode = GameMode.classic;
 
   @override
   void initState() {
     super.initState();
+    _modeTab = TabController(length: 2, vsync: this);
+    _modeTab.addListener(() {
+      if (_modeTab.indexIsChanging) return;
+      final next =
+          _modeTab.index == 0 ? GameMode.classic : GameMode.collapse;
+      if (next == _mode) return;
+      setState(() {
+        _mode = next;
+        _future = _load();
+      });
+    });
     _future = _load();
+  }
+
+  @override
+  void dispose() {
+    _modeTab.dispose();
+    super.dispose();
   }
 
   Future<_BoardBundle> _load({bool force = false}) async {
@@ -28,8 +49,8 @@ class _ScoresScreenState extends State<ScoresScreen> {
     }
     try {
       final results = await Future.wait([
-        _boards.fetchDaily(force: force),
-        _boards.fetchAllTime(force: force),
+        _boards.fetchDaily(mode: _mode, force: force),
+        _boards.fetchAllTime(mode: _mode, force: force),
       ]);
       return _BoardBundle(
         daily: results[0],
@@ -51,57 +72,76 @@ class _ScoresScreenState extends State<ScoresScreen> {
   Widget build(BuildContext context) {
     return MenuPageScaffold(
       title: 'Scores',
-      child: FutureBuilder<_BoardBundle>(
-        future: _future,
-        builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: GameColors.chamberGlow,
-              ),
-            );
-          }
-          final data = snap.data ?? const _BoardBundle.unavailable();
-          return RefreshIndicator(
-            color: GameColors.chamberGlow,
-            backgroundColor: GameColors.spaceDeep,
-            onRefresh: () async => _refresh(),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                Text(
-                  'Daily boards reset at 00:00 UTC',
-                  style: GameFonts.ui(
-                    fontSize: 12,
-                    color: GameColors.mutedText.withValues(alpha: 0.85),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                if (!data.available)
-                  Text(
-                    'Leaderboards unavailable offline.',
-                    style: GameFonts.prose(
-                      fontSize: 15,
-                      color: GameColors.mutedText,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TabBar(
+            controller: _modeTab,
+            labelColor: GameColors.scoreText,
+            unselectedLabelColor: GameColors.mutedText,
+            indicatorColor: GameColors.chamberGlow,
+            labelStyle: GameFonts.ui(fontSize: 15, weight: FontWeight.w600),
+            tabs: const [
+              Tab(text: 'Classic'),
+              Tab(text: 'Collapse'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: FutureBuilder<_BoardBundle>(
+              future: _future,
+              builder: (context, snap) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: GameColors.chamberGlow,
                     ),
-                  )
-                else ...[
-                  _BoardSection(
-                    title: 'Daily',
-                    subtitle: LeaderboardService.utcDayKey(),
-                    entries: data.daily,
+                  );
+                }
+                final data = snap.data ?? const _BoardBundle.unavailable();
+                return RefreshIndicator(
+                  color: GameColors.chamberGlow,
+                  backgroundColor: GameColors.spaceDeep,
+                  onRefresh: () async => _refresh(),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      Text(
+                        'Daily boards reset at 00:00 UTC',
+                        style: GameFonts.ui(
+                          fontSize: 12,
+                          color: GameColors.mutedText.withValues(alpha: 0.85),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      if (!data.available)
+                        Text(
+                          'Leaderboards unavailable offline.',
+                          style: GameFonts.prose(
+                            fontSize: 15,
+                            color: GameColors.mutedText,
+                          ),
+                        )
+                      else ...[
+                        _BoardSection(
+                          title: 'Daily',
+                          subtitle: LeaderboardService.utcDayKey(),
+                          entries: data.daily,
+                        ),
+                        const SizedBox(height: 28),
+                        _BoardSection(
+                          title: 'All-time',
+                          subtitle: 'Top ${LeaderboardService.topN}',
+                          entries: data.allTime,
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 28),
-                  _BoardSection(
-                    title: 'All-time',
-                    subtitle: 'Top ${LeaderboardService.topN}',
-                    entries: data.allTime,
-                  ),
-                ],
-              ],
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -199,7 +239,7 @@ class _ScoreRow extends StatelessWidget {
           ),
         ),
         Text(
-          '${entry.score}',
+          entry.valueLabel,
           style: GameFonts.score(
             fontSize: 16,
             weight: FontWeight.w500,

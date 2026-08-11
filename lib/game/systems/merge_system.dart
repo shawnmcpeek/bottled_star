@@ -6,6 +6,7 @@ import '../constants.dart';
 import '../element_tier.dart';
 import 'bottled_star_world.dart';
 import 'sfx_controller.dart';
+import 'achievement_hooks.dart';
 
 class PendingMerge {
   PendingMerge(this.a, this.b);
@@ -126,6 +127,8 @@ class MergeSystem {
       highestCreated = result;
       world.onElementCreated(result);
       SfxController.instance.playMergePluck(result);
+      // ignore: unawaited_futures
+      AchievementHooks.onFusion(resultTier: result.tier);
 
       a.removeFromParent();
       b.removeFromParent();

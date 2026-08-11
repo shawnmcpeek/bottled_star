@@ -82,6 +82,10 @@ abstract final class GameConstants {
   static const String prefsHapticsEnabled = 'haptics_enabled';
   static const String prefsDisplayName = 'display_name';
   static const String prefsLastMusicIndex = 'last_music_index';
+  static const String prefsAchievements = 'achievements_v1';
+  static const String prefsChallengeUnlockedDebug = 'challenge_unlocked_debug';
+  /// Legacy key — still read once for migration in PurchasesController.
+  static const String prefsCollapseUnlockedDebug = 'collapse_unlocked_debug';
 }
 
 enum RunEnding {

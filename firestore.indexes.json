@@ -1,11 +1,19 @@
 {
   "indexes": [
     {
-      "collectionGroup": "daily_scores",
+      "collectionGroup": "classic_daily",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "dayKey", "order": "ASCENDING" },
         { "fieldPath": "score", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "collapse_daily",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dayKey", "order": "ASCENDING" },
+        { "fieldPath": "rankScore", "order": "DESCENDING" }
       ]
     }
   ],

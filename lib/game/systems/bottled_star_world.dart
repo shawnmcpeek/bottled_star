@@ -16,6 +16,7 @@ import 'merge_system.dart';
 import 'haptics_controller.dart';
 import 'sfx_controller.dart';
 import 'supernova_blast.dart';
+import 'achievement_hooks.dart';
 
 typedef ScoreCallback = void Function(int delta, int total);
 typedef GameOverCallback = void Function(RunEnding ending);
@@ -394,6 +395,8 @@ class BottledStarWorld extends Forge2DWorld {
 
     SfxController.instance.playSpringHit();
     HapticsController.instance.playBlast();
+    // ignore: unawaited_futures
+    AchievementHooks.onSupernovaBlast();
     add(SupernovaBlast(origin: origin, gameWorld: this));
 
     chamber.flare = 1.0;

@@ -6,6 +6,7 @@ import '../game/constants.dart';
 import '../game/element_art.dart';
 import '../game/element_tier.dart';
 import '../game/modes/game_mode.dart';
+import '../game/systems/achievement_hooks.dart';
 import '../game/systems/first_run_guide.dart';
 import '../game/systems/leaderboard_service.dart';
 import '../game/systems/haptics_controller.dart';
@@ -509,8 +510,14 @@ class _EndingCardState extends State<_EndingCard> {
     if (_submitStarted || !mounted) return;
     _submitStarted = true;
 
+    final mode = widget.game.mode;
     final score = widget.game.scoreNotifier.value;
-    if (score <= 0) return;
+    final kilos = widget.game.world.kilonovaCount;
+    final shots = widget.game.world.shotCount;
+    final shouldSubmit = mode == GameMode.collapse
+        ? (kilos > 0 || score > 0)
+        : score > 0;
+    if (!shouldSubmit || !mode.isPlayable) return;
 
     await _settings.load();
     if (!mounted) return;
@@ -520,7 +527,7 @@ class _EndingCardState extends State<_EndingCard> {
       name = await promptDisplayName(context);
       if (!mounted) return;
       if (name == null) {
-        setState(() => _boardStatus = 'Score kept local');
+        setState(() => _boardStatus = 'Not posted');
         return;
       }
       await _settings.setDisplayName(name);
@@ -528,7 +535,10 @@ class _EndingCardState extends State<_EndingCard> {
 
     setState(() => _boardStatus = 'Submitting…');
     final result = await _boards.submitBest(
+      mode: mode,
       score: score,
+      kilonovas: kilos,
+      shots: shots,
       displayName: name,
       peakTier: widget.game.peakTierNotifier.value,
       ending: widget.ending.name,
@@ -541,9 +551,13 @@ class _EndingCardState extends State<_EndingCard> {
         LeaderboardSubmitResult.notImproved => 'Personal best unchanged',
         LeaderboardSubmitResult.invalidName => 'Name not accepted',
         LeaderboardSubmitResult.rejected => 'Score rejected',
-        LeaderboardSubmitResult.unavailable => 'Board offline — kept local',
+        LeaderboardSubmitResult.unavailable => 'Couldn\'t reach boards',
       };
     });
+
+    if (result == LeaderboardSubmitResult.submitted) {
+      await AchievementHooks.onBoardPosted();
+    }
   }
 
   String get _eyebrow => _isKilonova

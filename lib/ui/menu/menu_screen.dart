@@ -93,6 +93,11 @@ class _MenuScreenState extends State<MenuScreen> {
                     onPressed: () => Navigator.of(context).pushNamed('/scores'),
                   ),
                   MenuLinkButton(
+                    label: 'Achievements',
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed('/achievements'),
+                  ),
+                  MenuLinkButton(
                     label: 'Options',
                     onPressed: () => Navigator.of(context).pushNamed('/options'),
                   ),

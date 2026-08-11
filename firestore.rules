@@ -25,49 +25,137 @@ service cloud.firestore {
 
     function validEnding(ending) {
       return ending is string
-        && (ending == 'whiteDwarf' || ending == 'supernova');
+        && (ending == 'whiteDwarf'
+          || ending == 'supernova'
+          || ending == 'kilonova');
     }
 
-    match /all_time_scores/{uid} {
-      allow read: if true;
-      allow create: if signedIn()
+    function validKilonovas(k) {
+      return k is int && k >= 0 && k <= 10000;
+    }
+
+    function validShots(s) {
+      return s is int && s >= 0 && s < 1000000;
+    }
+
+    function validRankScore(data) {
+      return data.rankScore is int
+        && data.rankScore == data.kilonovas * 1000000 - data.shots;
+    }
+
+    function classicFields() {
+      return request.resource.data.keys().hasAll([
+          'uid', 'displayName', 'mode', 'ending', 'peakTier', 'score'
+        ])
+        && request.resource.data.mode == 'classic'
+        && validScore(request.resource.data.score);
+    }
+
+    function collapseFields() {
+      return request.resource.data.keys().hasAll([
+          'uid', 'displayName', 'mode', 'ending', 'peakTier',
+          'kilonovas', 'shots', 'rankScore'
+        ])
+        && request.resource.data.mode == 'collapse'
+        && validKilonovas(request.resource.data.kilonovas)
+        && validShots(request.resource.data.shots)
+        && validRankScore(request.resource.data);
+    }
+
+    function classicCreateOk(uid) {
+      return signedIn()
         && request.auth.uid == uid
         && request.resource.data.uid == uid
         && validName(request.resource.data.displayName)
-        && validScore(request.resource.data.score)
-        && validPeak(request.resource.data.peakTier)
-        && validEnding(request.resource.data.ending);
-      allow update: if signedIn()
-        && request.auth.uid == uid
-        && request.resource.data.uid == uid
-        && validName(request.resource.data.displayName)
-        && validScore(request.resource.data.score)
         && validPeak(request.resource.data.peakTier)
         && validEnding(request.resource.data.ending)
+        && classicFields();
+    }
+
+    function classicUpdateOk(uid) {
+      return classicCreateOk(uid)
         && request.resource.data.score >= resource.data.score;
     }
 
-    match /daily_scores/{docId} {
-      allow read: if true;
-      allow create: if signedIn()
+    function collapseCreateOk(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && validName(request.resource.data.displayName)
+        && validPeak(request.resource.data.peakTier)
+        && validEnding(request.resource.data.ending)
+        && collapseFields();
+    }
+
+    function collapseUpdateOk(uid) {
+      return collapseCreateOk(uid)
+        && request.resource.data.rankScore >= resource.data.rankScore;
+    }
+
+    function dailyClassicCreateOk() {
+      return signedIn()
         && request.resource.data.uid == request.auth.uid
-        && docId == request.resource.data.dayKey + '_' + request.auth.uid
         && request.resource.data.dayKey is string
         && request.resource.data.dayKey.size() == 10
         && validName(request.resource.data.displayName)
-        && validScore(request.resource.data.score)
-        && validPeak(request.resource.data.peakTier)
-        && validEnding(request.resource.data.ending);
-      allow update: if signedIn()
-        && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.dayKey == resource.data.dayKey
-        && docId == request.resource.data.dayKey + '_' + request.auth.uid
-        && validName(request.resource.data.displayName)
-        && validScore(request.resource.data.score)
         && validPeak(request.resource.data.peakTier)
         && validEnding(request.resource.data.ending)
+        && classicFields();
+    }
+
+    function dailyCollapseCreateOk() {
+      return signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.dayKey is string
+        && request.resource.data.dayKey.size() == 10
+        && validName(request.resource.data.displayName)
+        && validPeak(request.resource.data.peakTier)
+        && validEnding(request.resource.data.ending)
+        && collapseFields();
+    }
+
+    // Legacy flat boards — read-only going forward.
+    match /all_time_scores/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /daily_scores/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /classic_all_time/{uid} {
+      allow read: if true;
+      allow create: if classicCreateOk(uid);
+      allow update: if classicUpdateOk(uid);
+    }
+
+    match /classic_daily/{docId} {
+      allow read: if true;
+      allow create: if dailyClassicCreateOk()
+        && docId == request.resource.data.dayKey + '_' + request.auth.uid;
+      allow update: if dailyClassicCreateOk()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.dayKey == resource.data.dayKey
+        && docId == request.resource.data.dayKey + '_' + request.auth.uid
         && request.resource.data.score >= resource.data.score;
+    }
+
+    match /collapse_all_time/{uid} {
+      allow read: if true;
+      allow create: if collapseCreateOk(uid);
+      allow update: if collapseUpdateOk(uid);
+    }
+
+    match /collapse_daily/{docId} {
+      allow read: if true;
+      allow create: if dailyCollapseCreateOk()
+        && docId == request.resource.data.dayKey + '_' + request.auth.uid;
+      allow update: if dailyCollapseCreateOk()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.dayKey == resource.data.dayKey
+        && docId == request.resource.data.dayKey + '_' + request.auth.uid
+        && request.resource.data.rankScore >= resource.data.rankScore;
     }
   }
 }

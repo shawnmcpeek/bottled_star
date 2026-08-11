@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../game/systems/haptics_controller.dart';
 import '../../game/systems/leaderboard_service.dart';
 import '../../game/systems/music_controller.dart';
+import '../../game/systems/purchases_controller.dart';
 import '../../game/systems/settings_store.dart';
 import '../../game/systems/sfx_controller.dart';
 import '../../theme/game_colors.dart';
@@ -105,6 +107,40 @@ class _OptionsScreenState extends State<OptionsScreen> {
                     setState(() {});
                   },
                 ),
+                if (!kIsWeb &&
+                    (defaultTargetPlatform == TargetPlatform.linux ||
+                        defaultTargetPlatform == TargetPlatform.windows ||
+                        defaultTargetPlatform == TargetPlatform.macOS ||
+                        kDebugMode)) ...[
+                  _OptionsToggle(
+                    label: 'Unlock Challenge (dev)',
+                    subtitle: 'Bypass store for testing',
+                    value: PurchasesController.instance.debugUnlock,
+                    onChanged: (v) async {
+                      await PurchasesController.instance.setDebugUnlock(v);
+                      setState(() {});
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'IAP review screenshot',
+                      style: GameFonts.ui(
+                        fontSize: 16,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'iPhone 6.7" frame for App Store Connect',
+                      style: GameFonts.ui(
+                        fontSize: 13,
+                        color: GameColors.mutedText.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed('/iap-preview'),
+                  ),
+                ],
                 const SizedBox(height: 28),
                 Text(
                   'Leaderboard',
