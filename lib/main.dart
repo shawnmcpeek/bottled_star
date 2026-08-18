@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'firebase_options.dart';
+import 'game/challenge/level_library.dart';
 import 'game/modes/game_mode.dart';
 import 'game/systems/achievement_store.dart';
 import 'game/systems/purchases_controller.dart';
+import 'monetization/ad_gateway.dart';
 import 'theme/app_theme.dart';
 import 'theme/game_colors.dart';
 import 'ui/game_screen.dart';
@@ -23,6 +25,12 @@ Future<void> main() async {
   await _initFirebase();
   await AchievementStore.instance.load();
   await PurchasesController.instance.init();
+  // Never init an ad SDK for no_ads holders — some SDKs collect on init.
+  if (PurchasesController.instance.adsEnabledFlag) {
+    await AdGateway.instance.initialize();
+  }
+  // Debug-only: fail loud on the dev machine if a pack is malformed.
+  await LevelLibrary.assertValidInDebug();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);

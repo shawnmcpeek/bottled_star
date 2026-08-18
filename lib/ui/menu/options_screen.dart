@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../game/element_tuning.dart';
 import '../../game/systems/haptics_controller.dart';
 import '../../game/systems/leaderboard_service.dart';
 import '../../game/systems/music_controller.dart';
@@ -107,6 +108,22 @@ class _OptionsScreenState extends State<OptionsScreen> {
                     setState(() {});
                   },
                 ),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 28),
+                  Text(
+                    'Playtest',
+                    style: GameFonts.label(fontSize: 11),
+                  ),
+                  const SizedBox(height: 8),
+                  _OptionsToggle(
+                    label: 'Physics debug overlay',
+                    subtitle: 'Shots, fill area, He/Fe counts',
+                    value: ElementTuning.showPhysicsDebug,
+                    onChanged: (v) {
+                      setState(() => ElementTuning.showPhysicsDebug = v);
+                    },
+                  ),
+                ],
                 if (!kIsWeb &&
                     (defaultTargetPlatform == TargetPlatform.linux ||
                         defaultTargetPlatform == TargetPlatform.windows ||

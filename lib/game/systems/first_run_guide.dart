@@ -57,6 +57,22 @@ class FirstRunGuide {
 
   void skip() => _finish();
 
+  /// Manual next-tip. Last step completes the guide.
+  void advance() {
+    if (_completed) return;
+    final current = step.value;
+    if (current == FirstRunStep.done) return;
+    final next = FirstRunStep.values[current.index + 1];
+    if (next == FirstRunStep.done) {
+      _finish();
+      return;
+    }
+    _advanceTo(next);
+    if (next == FirstRunStep.containment) {
+      _armFinishHold();
+    }
+  }
+
   void onShotFired() {
     if (step.value == FirstRunStep.inject) {
       _advanceTo(FirstRunStep.fuse);

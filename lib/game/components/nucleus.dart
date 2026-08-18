@@ -42,18 +42,27 @@ class Nucleus extends BodyComponent with ContactCallbacks {
   double _pulse = 0;
   double _inertCooldown = 0;
 
+  /// Mode-scaled collision / render radius (Challenge stays at table size).
+  double get effectiveRadius {
+    final gameWorld = world;
+    if (gameWorld is BottledStarWorld) {
+      return tier.radiusFor(gameWorld.mode);
+    }
+    return tier.baseRadius;
+  }
+
   static final Map<int, TextPainter> _symbolPainters = {};
 
   bool touchingRim(Vector2 chamberCenter, double chamberRadius) {
     if (!isMounted || pendingDestroy) return false;
     final d = body.position.distanceTo(chamberCenter);
-    return d + tier.radius >=
+    return d + effectiveRadius >=
         chamberRadius - GameConstants.rimContactEpsilon;
   }
 
   @override
   Body createBody() {
-    final shape = CircleShape()..radius = tier.radius;
+    final shape = CircleShape()..radius = effectiveRadius;
     final bodyDef = BodyDef(
       type: BodyType.dynamic,
       position: _spawnPosition,
@@ -100,7 +109,7 @@ class Nucleus extends BodyComponent with ContactCallbacks {
         at: body.position.clone(),
         direction: delta,
         color: TierPalette.fillFor(tier.tier),
-        radius: tier.radius,
+        radius: effectiveRadius,
       ),
     );
   }
@@ -113,7 +122,15 @@ class Nucleus extends BodyComponent with ContactCallbacks {
 
     if (other is! Nucleus || other.pendingDestroy) return;
 
-    final result = ElementTier.mergeResult(tier, other.tier);
+    final gameWorld = world;
+    final allowSame = gameWorld is BottledStarWorld
+        ? gameWorld.allowSameTierMerges
+        : true;
+    final result = ElementTier.mergeResult(
+      tier,
+      other.tier,
+      allowSameTier: allowSame,
+    );
     if (result != null) {
       onMergeRequest(this, other);
       return;
@@ -148,7 +165,7 @@ class Nucleus extends BodyComponent with ContactCallbacks {
       Paint()..color = Color.fromRGBO(255, 255, 255, renderOpacity),
     );
 
-    final r = tier.radius;
+    final r = effectiveRadius;
     final glowColor = TierPalette.glowFor(tier.tier);
     final energetic = tier.isHelium;
 

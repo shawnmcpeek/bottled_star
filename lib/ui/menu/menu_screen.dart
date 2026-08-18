@@ -53,75 +53,85 @@ class _MenuScreenState extends State<MenuScreen> {
         children: [
           const MenuAtmosphere(),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-              child: Column(
-                children: [
-                  const Spacer(flex: 2),
-                  Image.asset(
-                    'assets/branding/logo.png',
-                    width: 168,
-                    height: 168,
-                    filterQuality: FilterQuality.medium,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Bottled Star',
-                    textAlign: TextAlign.center,
-                    style: GameFonts.brandWordmark(),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Hold a star in a bottle.',
-                    textAlign: TextAlign.center,
-                    style: GameFonts.prose(
-                      fontSize: 16,
-                      color: GameColors.mutedText,
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+                    child: Column(
+                      children: [
+                        const Spacer(flex: 2),
+                        Image.asset(
+                          'assets/branding/logo.png',
+                          width: 168,
+                          height: 168,
+                          filterQuality: FilterQuality.medium,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Bottled Star',
+                          textAlign: TextAlign.center,
+                          style: GameFonts.brandWordmark(),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Hold a star in a bottle.',
+                          textAlign: TextAlign.center,
+                          style: GameFonts.prose(
+                            fontSize: 16,
+                            color: GameColors.mutedText,
+                          ),
+                        ),
+                        const Spacer(flex: 2),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _play,
+                            child: const Text('Play'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        MenuLinkButton(
+                          label: 'Scores',
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed('/scores'),
+                        ),
+                        MenuLinkButton(
+                          label: 'Achievements',
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed('/achievements'),
+                        ),
+                        MenuLinkButton(
+                          label: 'Options',
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed('/options'),
+                        ),
+                        MenuLinkButton(
+                          label: 'Credits',
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed('/credits'),
+                        ),
+                        const SizedBox(height: 10),
+                        AnimatedOpacity(
+                          opacity: _ready ? 1 : 0,
+                          duration: const Duration(milliseconds: 280),
+                          child: Text(
+                            _bestLine(best, peak),
+                            textAlign: TextAlign.center,
+                            style: GameFonts.ui(
+                              fontSize: 13,
+                              weight: FontWeight.w500,
+                              color: GameColors.mutedText,
+                            ),
+                          ),
+                        ),
+                        const Spacer(flex: 1),
+                      ],
                     ),
                   ),
-                  const Spacer(flex: 2),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _play,
-                      child: const Text('Play'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  MenuLinkButton(
-                    label: 'Scores',
-                    onPressed: () => Navigator.of(context).pushNamed('/scores'),
-                  ),
-                  MenuLinkButton(
-                    label: 'Achievements',
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed('/achievements'),
-                  ),
-                  MenuLinkButton(
-                    label: 'Options',
-                    onPressed: () => Navigator.of(context).pushNamed('/options'),
-                  ),
-                  MenuLinkButton(
-                    label: 'Credits',
-                    onPressed: () => Navigator.of(context).pushNamed('/credits'),
-                  ),
-                  const SizedBox(height: 10),
-                  AnimatedOpacity(
-                    opacity: _ready ? 1 : 0,
-                    duration: const Duration(milliseconds: 280),
-                    child: Text(
-                      _bestLine(best, peak),
-                      textAlign: TextAlign.center,
-                      style: GameFonts.ui(
-                        fontSize: 13,
-                        weight: FontWeight.w500,
-                        color: GameColors.mutedText,
-                      ),
-                    ),
-                  ),
-                  const Spacer(flex: 1),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

@@ -65,13 +65,22 @@ class LeaderboardService {
   static String allTimeCollection(GameMode mode) => switch (mode) {
         GameMode.classic => 'classic_all_time',
         GameMode.collapse => 'collapse_all_time',
-        GameMode.challenge => 'classic_all_time',
+        // Challenge levels are deterministic — fixed seed, fixed queue, fixed
+        // goal. Every competent player converges on the same optimal solution,
+        // so a best-shots board collapses into a thousand-way tie at par,
+        // ordered by submission time. That is not a leaderboard. Challenge
+        // feeds achievements instead. Never alias onto Classic collections.
+        GameMode.challenge => throw UnsupportedError(
+            'Challenge has no leaderboard collections',
+          ),
       };
 
   static String dailyCollection(GameMode mode) => switch (mode) {
         GameMode.classic => 'classic_daily',
         GameMode.collapse => 'collapse_daily',
-        GameMode.challenge => 'classic_daily',
+        GameMode.challenge => throw UnsupportedError(
+            'Challenge has no leaderboard collections',
+          ),
       };
 
   Future<User?> ensureSignedIn() async {
@@ -91,11 +100,15 @@ class LeaderboardService {
     int kilonovas = 0,
     int shots = 0,
   }) async {
-    if (!isAvailable) {
-      return LeaderboardSubmitResult.unavailable;
-    }
+    // Challenge is deterministic (fixed seed/queue/goal). A best-shots board
+    // would be a time-ordered tie at par — not a leaderboard. Feed
+    // achievements instead. Guard here so a future refactor cannot quietly
+    // write Challenge rows into Firestore.
     if (mode == GameMode.challenge) {
       return LeaderboardSubmitResult.rejected;
+    }
+    if (!isAvailable) {
+      return LeaderboardSubmitResult.unavailable;
     }
     final name = sanitizeDisplayName(displayName);
     if (name == null) {

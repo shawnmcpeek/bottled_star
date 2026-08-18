@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "pack": 1,
+  "levels": [
+    {
+      "id": "p1_09",
+      "name": "Starved",
+      "blurb": "One calcium. No helium given.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ca",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 270,
+            "radiusFrac": 0.72
+          },
+          {
+            "element": "C",
+            "count": 4,
+            "placement": "ring",
+            "radiusFrac": 0.55,
+            "phaseDeg": 45
+          }
+        ],
+        "baked": null
+      },
+
+      "injectionArc": { "centerDeg": 90, "widthDeg": 120 },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "produce", "element": "Fe", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 22 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    }
+  ]
+}

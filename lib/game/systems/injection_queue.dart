@@ -2,21 +2,29 @@ import 'dart:math';
 
 import '../constants.dart';
 import '../element_tier.dart';
+import 'injection_source.dart';
 
 /// Suika-style injection queue: unlock pool by highest element created this run,
 /// keep H/He common so helium contention stays central. Never inject above
 /// [GameConstants.maxInjectTier] and never inject Fe.
-class InjectionQueue {
+class InjectionQueue implements InjectionSource {
   InjectionQueue({Random? random}) : _rng = random ?? Random() {
     reset();
   }
 
   final Random _rng;
 
+  @override
   late ElementTier current;
+  @override
   late ElementTier next;
   int unlockedThrough = 0;
 
+  /// Weighted Classic queue never runs dry.
+  @override
+  bool get isExhausted => false;
+
+  @override
   void reset() {
     unlockedThrough = 0;
     current = ElementTier.hydrogen;
@@ -24,6 +32,7 @@ class InjectionQueue {
   }
 
   /// Expand the drop pool when the run creates a new highest element.
+  @override
   void onHighestTier(int highestTier) {
     final capped = highestTier.clamp(0, GameConstants.maxInjectTier);
     if (capped > unlockedThrough) {
@@ -31,6 +40,7 @@ class InjectionQueue {
     }
   }
 
+  @override
   ElementTier consume() {
     final fired = current;
     current = next;

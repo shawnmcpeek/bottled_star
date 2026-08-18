@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../modes/game_mode.dart';
 import 'collapse_tuning.dart';
 import 'remnant.dart';
 
@@ -8,22 +9,23 @@ abstract final class Kilonova {
   static bool _asserted = false;
 
   /// Call once when Collapse mode loads.
-  static void assertThreshold() {
+  static void assertThreshold(GameMode mode) {
     if (_asserted) return;
     _asserted = true;
+    final closing = CollapseTuning.kilonovaClosingSpeedFor(mode);
+    final gravityCeiling = CollapseTuning.gravityCeilingSpeed;
     assert(
-      CollapseTuning.kilonovaClosingSpeed >
-          CollapseTuning.gravityCeilingSpeed * 2.5,
-      'Kilonova threshold (${CollapseTuning.kilonovaClosingSpeed}) is within '
-      'reach of gravity alone (${CollapseTuning.gravityCeilingSpeed}). '
+      closing > gravityCeiling * 2.5,
+      'Kilonova threshold ($closing) is within '
+      'reach of gravity alone ($gravityCeiling). '
       'Remnants will merge while settling and the positioning game is dead. '
       'Raise blastRetentionFraction or lower remnantDensity.',
     );
     if (kDebugMode) {
       debugPrint(
-        'Kilonova threshold=${CollapseTuning.kilonovaClosingSpeed.toStringAsFixed(1)} '
-        'gravityCeiling=${CollapseTuning.gravityCeilingSpeed.toStringAsFixed(1)} '
-        'blastDelivered=${CollapseTuning.blastDeliveredSpeed.toStringAsFixed(1)}',
+        'Kilonova threshold=${closing.toStringAsFixed(1)} '
+        'gravityCeiling=${gravityCeiling.toStringAsFixed(1)} '
+        'blastDelivered=${CollapseTuning.blastDeliveredSpeedFor(mode).toStringAsFixed(1)}',
       );
     }
   }
@@ -39,14 +41,17 @@ abstract final class Kilonova {
     final closingSpeed = -relVel.dot(normal);
 
     if (kDebugMode) {
-      final pass = closingSpeed >= CollapseTuning.kilonovaClosingSpeed;
+      final threshold =
+          CollapseTuning.kilonovaClosingSpeedFor(a.gameWorld.mode);
+      final pass = closingSpeed >= threshold;
       debugPrint(
         'Remnant contact closing=${closingSpeed.toStringAsFixed(1)} '
-        'threshold=${CollapseTuning.kilonovaClosingSpeed.toStringAsFixed(1)} '
+        'threshold=${threshold.toStringAsFixed(1)} '
         '${pass ? "PASS" : "fail"}',
       );
     }
 
-    return closingSpeed >= CollapseTuning.kilonovaClosingSpeed;
+    return closingSpeed >=
+        CollapseTuning.kilonovaClosingSpeedFor(a.gameWorld.mode);
   }
 }

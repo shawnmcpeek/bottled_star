@@ -41,8 +41,7 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
     super.initState();
     _ticker = createTicker((elapsed) {
       setState(() => _elapsed = elapsed.inMilliseconds / 1000.0);
-    })
-      ..start();
+    })..start();
     _loadCreditArt();
   }
 
@@ -60,9 +59,7 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
       final path = kind.assetPath;
       if (path == null || _creditArt.containsKey(path)) continue;
       final data = await rootBundle.load(path);
-      final codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(),
-      );
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
       final frame = await codec.getNextFrame();
       if (!mounted) {
         frame.image.dispose();
@@ -95,20 +92,13 @@ class _MenuAtmosphereState extends State<MenuAtmosphere>
 }
 
 class _CreditDriftKind {
-  const _CreditDriftKind({
-    required this.fill,
-    this.emoji,
-    this.assetPath,
-  });
+  const _CreditDriftKind({required this.fill, this.emoji, this.assetPath});
 
   final Color fill;
   final String? emoji;
   final String? assetPath;
 
-  static const panda = _CreditDriftKind(
-    fill: Color(0xFFF0F0F2),
-    emoji: '🐼',
-  );
+  static const panda = _CreditDriftKind(fill: Color(0xFFF0F0F2), emoji: '🐼');
 
   static const yeti = _CreditDriftKind(
     fill: Color(0xFFD8E8F5),
@@ -160,11 +150,7 @@ class _MenuAtmospherePainter extends CustomPainter {
       ..shader = const RadialGradient(
         center: Alignment(0, -0.15),
         radius: 1.15,
-        colors: [
-          Color(0xFF1A0C14),
-          GameColors.spaceDeep,
-          GameColors.space,
-        ],
+        colors: [Color(0xFF1A0C14), GameColors.spaceDeep, GameColors.space],
         stops: [0.0, 0.45, 1.0],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, bg);
@@ -177,9 +163,9 @@ class _MenuAtmospherePainter extends CustomPainter {
       final dist = math.sqrt(dx * dx + dy * dy);
       if (dist < minSide * 0.22) continue;
 
-      final twinkle = 0.35 +
-          0.65 *
-              (0.5 + 0.5 * math.sin(t * math.pi * 2 * 1.4 + star.phase));
+      final twinkle =
+          0.35 +
+          0.65 * (0.5 + 0.5 * math.sin(t * math.pi * 2 * 1.4 + star.phase));
       final paint = Paint()
         ..color = Color.fromRGBO(
           255,
@@ -248,8 +234,8 @@ class _MenuAtmospherePainter extends CustomPainter {
     final fade = u < 0.18
         ? Curves.easeOut.transform(u / 0.18)
         : u > 0.82
-            ? Curves.easeIn.transform((1 - u) / 0.18)
-            : 1.0;
+        ? Curves.easeIn.transform((1 - u) / 0.18)
+        : 1.0;
     final alpha = 0.32 * fade;
     if (alpha < 0.02) return;
 
@@ -271,15 +257,14 @@ class _MenuAtmospherePainter extends CustomPainter {
 
     final r = driftCast == MenuDriftCast.creditsFamily
         ? math.min(size.width, size.height) * 0.044
-        : math.min(size.width, size.height) *
-            (0.034 + rng.nextDouble() * 0.02);
+        : math.min(size.width, size.height) * (0.034 + rng.nextDouble() * 0.02);
 
     final Color fill;
     final String? emoji;
     final ui.Image? art;
     if (driftCast == MenuDriftCast.creditsFamily) {
-      final kind = _CreditDriftKind
-          .roster[cycleIndex % _CreditDriftKind.roster.length];
+      final kind =
+          _CreditDriftKind.roster[cycleIndex % _CreditDriftKind.roster.length];
       fill = kind.fill;
       emoji = kind.emoji;
       final path = kind.assetPath;
@@ -300,11 +285,17 @@ class _MenuAtmospherePainter extends CustomPainter {
         center: const Alignment(-0.35, -0.4),
         radius: 1.0,
         colors: [
-          Color.lerp(fill, const Color(0xFFFFFFFF), 0.5)!
-              .withValues(alpha: (alpha * 1.1).clamp(0.0, 1.0)),
+          Color.lerp(
+            fill,
+            const Color(0xFFFFFFFF),
+            0.5,
+          )!.withValues(alpha: (alpha * 1.1).clamp(0.0, 1.0)),
           fill.withValues(alpha: alpha),
-          Color.lerp(fill, const Color(0xFF1A0508), 0.35)!
-              .withValues(alpha: alpha * 0.9),
+          Color.lerp(
+            fill,
+            const Color(0xFF1A0508),
+            0.35,
+          )!.withValues(alpha: alpha * 0.9),
         ],
         stops: const [0.0, 0.45, 1.0],
       ).createShader(Rect.fromCircle(center: pos, radius: r));
@@ -364,7 +355,8 @@ class _MenuAtmospherePainter extends CustomPainter {
       // Aim for a flyby just outside the rim glow.
       final periapsis = rimR * (0.55 + rng.nextDouble() * 0.5);
       final aimAngle = rng.nextDouble() * math.pi * 2;
-      final aim = core + Offset(math.cos(aimAngle), math.sin(aimAngle)) * periapsis;
+      final aim =
+          core + Offset(math.cos(aimAngle), math.sin(aimAngle)) * periapsis;
 
       final toAim = aim - start;
       final aimLen = toAim.distance;
@@ -477,6 +469,9 @@ class _MenuAtmospherePainter extends CustomPainter {
     final closest = Offset(a.dx + ab.dx * t, a.dy + ab.dy * t);
     return (p - closest).distance;
   }
+
+  @override
+  bool hitTest(Offset position) => false;
 
   @override
   bool shouldRepaint(covariant _MenuAtmospherePainter oldDelegate) =>

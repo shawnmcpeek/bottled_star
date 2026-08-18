@@ -32,7 +32,14 @@ class MergeSystem {
   void request(Nucleus a, Nucleus b) {
     if (a.pendingDestroy || b.pendingDestroy) return;
     if (identical(a, b)) return;
-    if (ElementTier.mergeResult(a.tier, b.tier) == null) return;
+    if (ElementTier.mergeResult(
+          a.tier,
+          b.tier,
+          allowSameTier: world.allowSameTierMerges,
+        ) ==
+        null) {
+      return;
+    }
     if (_containsPair(a, b)) return;
     _queue.add(PendingMerge(a, b));
   }
@@ -57,10 +64,17 @@ class MergeSystem {
       for (var j = i + 1; j < list.length; j++) {
         final a = list[i];
         final b = list[j];
-        if (ElementTier.mergeResult(a.tier, b.tier) == null) continue;
+        if (ElementTier.mergeResult(
+              a.tier,
+              b.tier,
+              allowSameTier: world.allowSameTierMerges,
+            ) ==
+            null) {
+          continue;
+        }
         final gap = a.body.position.distanceTo(b.body.position) -
-            a.tier.radius -
-            b.tier.radius;
+            a.effectiveRadius -
+            b.effectiveRadius;
         if (gap <= GameConstants.mergeContactEpsilon) {
           request(a, b);
         }
@@ -92,7 +106,11 @@ class MergeSystem {
       if (!a.isMounted || !b.isMounted) continue;
       if (a.pendingDestroy || b.pendingDestroy) continue;
 
-      final result = ElementTier.mergeResult(a.tier, b.tier);
+      final result = ElementTier.mergeResult(
+        a.tier,
+        b.tier,
+        allowSameTier: world.allowSameTierMerges,
+      );
       if (result == null) continue;
 
       consumed
@@ -141,7 +159,7 @@ class MergeSystem {
       );
 
       world.add(
-        MergeFlash(at: mid, radius: result.radius),
+        MergeFlash(at: mid, radius: result.radiusFor(world.mode)),
       );
     }
   }

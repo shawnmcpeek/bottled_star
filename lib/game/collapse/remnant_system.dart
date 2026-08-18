@@ -34,7 +34,7 @@ class RemnantSystem {
 
   /// Called after a mid-run supernova shell finishes — spawn at fusion point.
   void spawnAt(Vector2 fusionPoint) {
-    Kilonova.assertThreshold();
+    Kilonova.assertThreshold(gameWorld.mode);
     supernovaCount++;
     final remnant = Remnant(
       gameWorld: gameWorld,
@@ -93,7 +93,7 @@ class RemnantSystem {
     gameWorld.add(
       MergeFlash(
         at: midpoint,
-        radius: CollapseTuning.remnantRadius * 2.2,
+        radius: CollapseTuning.remnantRadiusFor(gameWorld.mode) * 2.2,
       ),
     );
     gameWorld.add(KilonovaBurst(origin: midpoint));

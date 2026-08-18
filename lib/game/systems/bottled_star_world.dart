@@ -3,13 +3,17 @@ import 'dart:math' as math;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../collapse/remnant_system.dart';
+import '../challenge/challenge_run.dart';
+import '../challenge/level_spec.dart';
 import '../components/chamber.dart';
 import '../components/effects.dart';
 import '../components/injector.dart';
 import '../components/nucleus.dart';
 import '../constants.dart';
 import '../element_tier.dart';
+import '../element_tuning.dart';
 import '../modes/game_mode.dart';
+import '../modes/mode_rules.dart';
 import 'ending_controller.dart';
 import 'injection_queue.dart';
 import 'merge_system.dart';
@@ -31,6 +35,7 @@ typedef PressureCallback = void Function(double normalized01);
 class BottledStarWorld extends Forge2DWorld {
   BottledStarWorld({
     this.mode = GameMode.classic,
+    this.challengeLevel,
     ScoreCallback? onScore,
     GameOverCallback? onGameOver,
     TierCallback? onTierReached,
@@ -51,9 +56,17 @@ class BottledStarWorld extends Forge2DWorld {
         onShotFired = onShotFired ?? (() {}),
         onMerge = onMerge ?? (() {}),
         onRimPressure = onRimPressure ?? ((_) {}),
+        allowSameTierMerges = !(challengeLevel?.noSameTier ?? false),
         super(gravity: Vector2.zero());
 
   final GameMode mode;
+
+  /// Set for Challenge runs. Classic / Collapse leave this null.
+  final LevelSpec? challengeLevel;
+
+  /// When false, [ElementTier.sameTierMerges] is disabled for this world.
+  /// Defaults true; Challenge `noSameTier` flips it for that level only.
+  bool allowSameTierMerges;
 
   ScoreCallback onScore;
   GameOverCallback onGameOver;
@@ -89,6 +102,7 @@ class BottledStarWorld extends Forge2DWorld {
 
   double _displayedPressure = 0;
   double _injectorLockout = 0;
+  double _runElapsed = 0;
   Nucleus? _pendingSupernovaA;
   Nucleus? _pendingSupernovaB;
   RunEnding? activeEnding;
@@ -96,6 +110,29 @@ class BottledStarWorld extends Forge2DWorld {
   static final Vector2 chamberCenter = Vector2.zero();
 
   bool get isCollapse => mode == GameMode.collapse;
+
+  ModeRules get modeRules => ModeRules.forMode(mode);
+
+  double get runElapsedSeconds => _runElapsed;
+
+  double get totalOccupiedArea {
+    var area = 0.0;
+    for (final n in nuclei) {
+      if (!n.isMounted || n.pendingDestroy) continue;
+      final r = n.effectiveRadius;
+      area += math.pi * r * r;
+    }
+    return area;
+  }
+
+  double get occupiedAreaFraction =>
+      totalOccupiedArea /
+      (math.pi * GameConstants.chamberRadius * GameConstants.chamberRadius);
+
+  int countForTier(ElementTier tier) => nuclei
+      .where((n) => n.isMounted && !n.pendingDestroy && n.tier == tier)
+      .length;
+
   bool get canInject =>
       inputEnabled && !gameOver && _injectorLockout <= 0;
 
@@ -136,8 +173,11 @@ class BottledStarWorld extends Forge2DWorld {
     chamber = ChamberWall();
     await add(chamber);
 
-    if (isCollapse) {
-      remnantSystem = RemnantSystem(this);
+    if (shouldAttachRemnants(
+      isCollapse: isCollapse,
+      challengeLevel: challengeLevel,
+    )) {
+      attachRemnantSystem();
     }
 
     injector.loadedTier = injectionQueue.current;
@@ -146,6 +186,12 @@ class BottledStarWorld extends Forge2DWorld {
 
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
+  }
+
+  /// Attach remnants for Collapse, or for a Challenge level with
+  /// `rules.remnants: true`. Classic never calls this.
+  void attachRemnantSystem() {
+    remnantSystem ??= RemnantSystem(this);
   }
 
   void resetRun() {
@@ -166,6 +212,7 @@ class BottledStarWorld extends Forge2DWorld {
     tiersCreatedThisRun.clear();
     _displayedPressure = 0;
     _injectorLockout = 0;
+    _runElapsed = 0;
     _pendingSupernovaA = null;
     _pendingSupernovaB = null;
     _postStepOps.clear();
@@ -250,12 +297,14 @@ class BottledStarWorld extends Forge2DWorld {
 
     final dir = injector.fireDirection;
     final spawn = injector.tipPosition + dir * 8;
-    final maxSpawn = GameConstants.chamberRadius - tier.radius - 2;
+    final maxSpawn =
+        GameConstants.chamberRadius - tier.radiusFor(mode) - 2;
     final spawnClamped = spawn.length > maxSpawn
         ? spawn.normalized() * maxSpawn
         : spawn;
 
-    final impulse = injector.impulseForPower(power01);
+    final impulse = injector.impulseForPower(power01) *
+        ElementTuning.impulseScaleFor(mode);
     final speed = impulse * 0.28;
     final velocity = dir * speed;
 
@@ -281,14 +330,19 @@ class BottledStarWorld extends Forge2DWorld {
     _beginRunEnding();
   }
 
-  /// Collapse only — called when a mid-run blast shell finishes.
+  /// Mid-run Fe+Fe blast finished — spawn a remnant when the system is attached
+  /// (Collapse, or Challenge with `rules.remnants: true`).
   void onSupernovaBlastResolved(Vector2 fusionPoint) {
-    if (!isCollapse || gameOver) return;
-    remnantSystem?.spawnAt(fusionPoint);
+    if (gameOver || remnantSystem == null) return;
+    remnantSystem!.spawnAt(fusionPoint);
   }
 
   @override
   void update(double dt) {
+    if (!gameOver) {
+      _runElapsed += dt;
+    }
+
     if (_injectorLockout > 0) {
       _injectorLockout = math.max(0, _injectorLockout - dt);
     }
@@ -297,8 +351,8 @@ class BottledStarWorld extends Forge2DWorld {
       for (final n in nuclei) {
         if (n.isMounted) n.applyRadialGravity();
       }
-      if (isCollapse) {
-        remnantSystem?.applyGravity();
+      if (remnantSystem != null) {
+        remnantSystem!.applyGravity();
       }
 
       physicsWorld.stepDt(dt);
@@ -352,6 +406,7 @@ class BottledStarWorld extends Forge2DWorld {
 
   void _scanSupernova() {
     if (gameOver) return;
+    if (!modeRules.ironCollapses) return;
     if (_pendingSupernovaA != null) return;
 
     final irons = nuclei
@@ -363,8 +418,8 @@ class BottledStarWorld extends Forge2DWorld {
         final a = irons[i];
         final b = irons[j];
         final gap = a.body.position.distanceTo(b.body.position) -
-            a.tier.radius -
-            b.tier.radius;
+            a.effectiveRadius -
+            b.effectiveRadius;
         if (gap <= GameConstants.kSupernovaContactEpsilon) {
           _pendingSupernovaA = a;
           _pendingSupernovaB = b;

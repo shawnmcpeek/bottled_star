@@ -34,7 +34,7 @@ class CreditsScreen extends StatelessWidget {
           ),
           const _CreditBlock(
             heading: 'Element art',
-            body: 'SakiVoid — best older daughter ever',
+            body: 'SakiVoid',
           ),
           Text('Type', style: GameFonts.label(fontSize: 11)),
           const SizedBox(height: 6),

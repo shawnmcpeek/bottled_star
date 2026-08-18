@@ -83,6 +83,9 @@ abstract final class GameConstants {
   static const String prefsDisplayName = 'display_name';
   static const String prefsLastMusicIndex = 'last_music_index';
   static const String prefsAchievements = 'achievements_v1';
+  static const String prefsChallengeProgress = 'challenge_progress_v1';
+  static const String prefsOwnedProducts = 'owned_products_v1';
+  static const String prefsAdPlaythroughCount = 'ad_playthrough_count';
   static const String prefsChallengeUnlockedDebug = 'challenge_unlocked_debug';
   /// Legacy key — still read once for migration in PurchasesController.
   static const String prefsCollapseUnlockedDebug = 'collapse_unlocked_debug';

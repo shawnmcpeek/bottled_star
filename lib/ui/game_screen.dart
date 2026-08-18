@@ -11,14 +11,17 @@ import '../game/systems/first_run_guide.dart';
 import '../game/systems/leaderboard_service.dart';
 import '../game/systems/haptics_controller.dart';
 import '../game/systems/music_controller.dart';
+import '../game/systems/purchases_controller.dart';
 import '../game/systems/score_store.dart';
 import '../game/systems/settings_store.dart';
 import '../game/systems/sfx_controller.dart';
+import '../monetization/ad_playthrough.dart';
 import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
 import 'howto/how_to_play_overlay.dart';
 import 'leave_run_button.dart';
 import 'menu/display_name_dialog.dart';
+import 'physics_debug_overlay.dart';
 import 'quiet_end_button.dart';
 
 class GameScreen extends StatefulWidget {
@@ -57,7 +60,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     await MusicController.instance.setVolume(_settings.musicVolume);
     await SfxController.instance.setVolume(_settings.sfxVolume);
     // Prefer kickoff from mode select (user gesture); retry if blocked.
-    await MusicController.instance.ensurePlaying(
+    // Do not await — music failure must never stall the game screen.
+    MusicController.instance.ensurePlaying(
       enabled: _settings.soundEnabled,
       mode: widget.mode,
     );
@@ -131,26 +135,28 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) {
-          MusicController.instance.ensurePlaying(
-            enabled: _settings.soundEnabled,
-            mode: widget.mode,
-          );
-        },
-        child: Focus(
+      body: Focus(
         autofocus: true,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            GameWidget(
-              game: _game,
-              overlayBuilderMap: {
-                'hud': (_, _) => HudOverlay(game: _game),
-                'ending': (_, _) => EndingOverlay(game: _game),
+            Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) {
+                MusicController.instance.ensurePlaying(
+                  enabled: _settings.soundEnabled,
+                  mode: widget.mode,
+                );
               },
-              initialActiveOverlays: const ['hud'],
+              child: GameWidget(
+                game: _game,
+                overlayBuilderMap: {
+                  'hud': (_, _) =>
+                      HudOverlay(game: _game, hideLeave: _showGuide),
+                  'ending': (_, _) => EndingOverlay(game: _game),
+                },
+                initialActiveOverlays: const ['hud'],
+              ),
             ),
             ValueListenableBuilder<double>(
               valueListenable: _game.flashNotifier,
@@ -163,6 +169,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 );
               },
             ),
+            PhysicsDebugOverlay(game: _game),
             if (widget.mode == GameMode.collapse)
               ValueListenableBuilder<bool>(
                 valueListenable: _game.gameOverNotifier,
@@ -186,12 +193,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                 },
               ),
             if (_bootstrapped && _showGuide && _guide != null)
-              HowToPlayOverlay(
-                guide: _guide!,
-                onSkip: _skipGuide,
-              ),
+              HowToPlayOverlay(guide: _guide!, onSkip: _skipGuide),
           ],
-        ),
         ),
       ),
     );
@@ -199,143 +202,175 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 }
 
 class HudOverlay extends StatelessWidget {
-  const HudOverlay({super.key, required this.game});
+  const HudOverlay({super.key, required this.game, this.hideLeave = false});
 
   final BottledStarGame game;
+  final bool hideLeave;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: game.scoreNotifier,
-                    builder: (_, score, _) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('SCORE', style: GameFonts.label()),
-                          Text(
-                            '$score',
-                            style: GameFonts.score(weight: FontWeight.w500),
-                          ),
-                          if (game.mode == GameMode.collapse) ...[
-                            const SizedBox(height: 10),
-                            ValueListenableBuilder<int>(
-                              valueListenable: game.kilonovaCountNotifier,
-                              builder: (_, kilos, _) {
-                                return Text(
-                                  'KILONOVAS  $kilos',
-                                  style: GameFonts.label(fontSize: 12),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 4),
-                            ValueListenableBuilder<int>(
-                              valueListenable: game.shotCountNotifier,
-                              builder: (_, shots, _) {
-                                return Text(
-                                  'SHOTS  $shots',
-                                  style: GameFonts.label(fontSize: 12),
-                                );
-                              },
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('BEST', style: GameFonts.label()),
-                    if (game.mode == GameMode.collapse)
-                      ValueListenableBuilder<String>(
-                        valueListenable: game.collapseBestNotifier,
-                        builder: (_, best, _) {
-                          return Text(
-                            best.isEmpty ? '—' : best,
-                            textAlign: TextAlign.right,
-                            style: GameFonts.ui(
-                              fontSize: 14,
-                              weight: FontWeight.w500,
-                              color: GameColors.rimMetal,
-                            ),
-                          );
-                        },
-                      )
-                    else
-                      ValueListenableBuilder<int>(
-                        valueListenable: game.highScoreNotifier,
-                        builder: (_, best, _) {
-                          return Text(
-                            '$best',
-                            style: GameFonts.score(
-                              fontSize: 22,
-                              weight: FontWeight.w500,
-                              color: GameColors.rimMetal,
-                            ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: IgnorePointer(
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: game.scoreNotifier,
+                        builder: (_, score, _) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('SCORE', style: GameFonts.label()),
+                              Text(
+                                '$score',
+                                style: GameFonts.score(weight: FontWeight.w500),
+                              ),
+                              if (game.mode == GameMode.collapse) ...[
+                                const SizedBox(height: 10),
+                                ValueListenableBuilder<int>(
+                                  valueListenable: game.kilonovaCountNotifier,
+                                  builder: (_, kilos, _) {
+                                    return Text(
+                                      'KILONOVAS  $kilos',
+                                      style: GameFonts.label(fontSize: 12),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 4),
+                                ValueListenableBuilder<int>(
+                                  valueListenable: game.shotCountNotifier,
+                                  builder: (_, shots, _) {
+                                    return Text(
+                                      'SHOTS  $shots',
+                                      style: GameFonts.label(fontSize: 12),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ],
                           );
                         },
                       ),
-                    const SizedBox(height: 6),
-                    ValueListenableBuilder<String>(
-                      valueListenable: game.bestElementNotifier,
-                      builder: (_, symbol, _) {
-                        return Text(
-                          'PEAK  $symbol',
-                          style: GameFonts.label(fontSize: 12),
+                    ),
+                  ),
+                  IgnorePointer(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('BEST', style: GameFonts.label()),
+                        if (game.mode == GameMode.collapse)
+                          ValueListenableBuilder<String>(
+                            valueListenable: game.collapseBestNotifier,
+                            builder: (_, best, _) {
+                              return Text(
+                                best.isEmpty ? '—' : best,
+                                textAlign: TextAlign.right,
+                                style: GameFonts.ui(
+                                  fontSize: 14,
+                                  weight: FontWeight.w500,
+                                  color: GameColors.rimMetal,
+                                ),
+                              );
+                            },
+                          )
+                        else
+                          ValueListenableBuilder<int>(
+                            valueListenable: game.highScoreNotifier,
+                            builder: (_, best, _) {
+                              return Text(
+                                '$best',
+                                style: GameFonts.score(
+                                  fontSize: 22,
+                                  weight: FontWeight.w500,
+                                  color: GameColors.rimMetal,
+                                ),
+                              );
+                            },
+                          ),
+                        const SizedBox(height: 6),
+                        ValueListenableBuilder<String>(
+                          valueListenable: game.bestElementNotifier,
+                          builder: (_, symbol, _) {
+                            return Text(
+                              'PEAK  $symbol',
+                              style: GameFonts.label(fontSize: 12),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  if (!hideLeave) LeaveRunButton(game: game),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: IgnorePointer(
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ValueListenableBuilder<ElementTier?>(
+                      valueListenable: game.lastUnlockNotifier,
+                      builder: (_, tier, _) {
+                        if (tier == null ||
+                            tier.tier < ElementTier.carbon.tier) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Text(
+                            '${tier.symbol}  ·  ${tier.displayName}',
+                            style: GameFonts.ui(
+                              fontSize: 14,
+                              weight: FontWeight.w600,
+                              color: GameColors.chamberGlow.withValues(
+                                alpha: 0.85,
+                              ),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
                         );
                       },
                     ),
+                    ShotPreviewRow(game: game),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Drag to aim  ·  Hold to charge  ·  Release to inject',
+                      textAlign: TextAlign.center,
+                      style: GameFonts.ui(
+                        fontSize: 12,
+                        weight: FontWeight.w500,
+                        color: GameColors.mutedText.withValues(alpha: 0.7),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(width: 4),
-                LeaveRunButton(game: game),
-              ],
-            ),
-            const Spacer(),
-            ValueListenableBuilder<ElementTier?>(
-              valueListenable: game.lastUnlockNotifier,
-              builder: (_, tier, _) {
-                if (tier == null || tier.tier < ElementTier.carbon.tier) {
-                  return const SizedBox.shrink();
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(
-                    '${tier.symbol}  ·  ${tier.displayName}',
-                    style: GameFonts.ui(
-                      fontSize: 14,
-                      weight: FontWeight.w600,
-                      color: GameColors.chamberGlow.withValues(alpha: 0.85),
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                );
-              },
-            ),
-            ShotPreviewRow(game: game),
-            const SizedBox(height: 10),
-            Text(
-              'Drag to aim  ·  Hold to charge  ·  Release to inject',
-              textAlign: TextAlign.center,
-              style: GameFonts.ui(
-                fontSize: 12,
-                weight: FontWeight.w500,
-                color: GameColors.mutedText.withValues(alpha: 0.7),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -511,6 +546,9 @@ class _EndingCardState extends State<_EndingCard> {
     _submitStarted = true;
 
     final mode = widget.game.mode;
+    // Challenge: deterministic levels — no Firestore board (see LeaderboardService).
+    if (mode == GameMode.challenge) return;
+
     final score = widget.game.scoreNotifier.value;
     final kilos = widget.game.world.kilonovaCount;
     final shots = widget.game.world.shotCount;
@@ -560,17 +598,32 @@ class _EndingCardState extends State<_EndingCard> {
     }
   }
 
+  /// Ending card leave paths — ad cadence fires here, never between kilonova
+  /// and the card itself.
+  Future<void> _onEndingDismissed({required bool toMenu}) async {
+    await AdPlaythrough.onEndingCardDismissed(
+      mode: widget.game.mode,
+      entitlements: PurchasesController.instance.entitlements,
+    );
+    if (!mounted) return;
+    if (toMenu) {
+      Navigator.of(context).pop();
+    } else {
+      widget.game.restart();
+    }
+  }
+
   String get _eyebrow => _isKilonova
       ? (widget.game.world.voluntaryEnd ? 'BANKED' : 'HEAVY ELEMENTS')
       : _isSupernova
-          ? 'CORE COLLAPSE'
-          : 'CONTAINMENT LOST';
+      ? 'CORE COLLAPSE'
+      : 'CONTAINMENT LOST';
 
   String get _title => _isKilonova
       ? 'COLLAPSE'
       : _isSupernova
-          ? 'SUPERNOVA'
-          : 'WHITE DWARF';
+      ? 'SUPERNOVA'
+      : 'WHITE DWARF';
 
   Color get _eyebrowColor => _isKilonova || _isSupernova
       ? GameColors.rimWarning
@@ -599,10 +652,7 @@ class _EndingCardState extends State<_EndingCard> {
                     style: GameFonts.endingEyebrow(color: _eyebrowColor),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    _title,
-                    style: GameFonts.endingTitle(),
-                  ),
+                  Text(_title, style: GameFonts.endingTitle()),
                   const SizedBox(height: 24),
                   if (_isKilonova) ...[
                     Text(
@@ -652,7 +702,8 @@ class _EndingCardState extends State<_EndingCard> {
                   const SizedBox(height: 22),
                   ValueListenableBuilder<String?>(
                     valueListenable: widget.game.endingLineNotifier,
-                    builder: (_, line, _) => _FadingEndingLine(text: line ?? ''),
+                    builder: (_, line, _) =>
+                        _FadingEndingLine(text: line ?? ''),
                   ),
                   if (_boardStatus != null) ...[
                     const SizedBox(height: 14),
@@ -669,13 +720,13 @@ class _EndingCardState extends State<_EndingCard> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: widget.game.restart,
+                      onPressed: () => _onEndingDismissed(toMenu: false),
                       child: const Text('Inject again'),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => _onEndingDismissed(toMenu: true),
                     child: Text(
                       'Menu',
                       style: GameFonts.ui(
@@ -778,14 +829,8 @@ class _StatLine extends StatelessWidget {
         Text(
           value,
           style: counting
-              ? GameFonts.score(
-                  fontSize: 18,
-                  weight: FontWeight.w500,
-                )
-              : GameFonts.ui(
-                  fontSize: 18,
-                  weight: FontWeight.w600,
-                ),
+              ? GameFonts.score(fontSize: 18, weight: FontWeight.w500)
+              : GameFonts.ui(fontSize: 18, weight: FontWeight.w600),
         ),
       ],
     );

@@ -1,3 +1,5 @@
+import '../systems/purchases_controller.dart';
+
 enum GameMode { classic, collapse, challenge }
 
 extension GameModeInfo on GameMode {
@@ -20,5 +22,11 @@ extension GameModeInfo on GameMode {
 
   String get highestTierKey => 'highest_tier_$name';
 
-  bool get isPlayable => this != GameMode.challenge;
+  /// Challenge requires the RevenueCat `challenge` entitlement (or the
+  /// debug unlock override in PurchasesController). Locked players still see
+  /// level-select — they buy what they can see.
+  bool get isPlayable => switch (this) {
+        GameMode.classic || GameMode.collapse => true,
+        GameMode.challenge => PurchasesController.instance.hasChallenge,
+      };
 }

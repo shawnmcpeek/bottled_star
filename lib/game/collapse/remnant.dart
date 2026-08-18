@@ -24,7 +24,8 @@ class Remnant extends BodyComponent with ContactCallbacks {
 
   @override
   Body createBody() {
-    final shape = CircleShape()..radius = CollapseTuning.remnantRadius;
+    final r = CollapseTuning.remnantRadiusFor(gameWorld.mode);
+    final shape = CircleShape()..radius = r;
     final bodyDef = BodyDef(
       type: BodyType.dynamic,
       position: _spawnPosition,
@@ -73,7 +74,7 @@ class Remnant extends BodyComponent with ContactCallbacks {
   @override
   void render(Canvas canvas) {
     if (pendingDestroy) return;
-    final r = CollapseTuning.remnantRadius;
+    final r = CollapseTuning.remnantRadiusFor(gameWorld.mode);
 
     final glow = Paint()
       ..shader = ui.Gradient.radial(

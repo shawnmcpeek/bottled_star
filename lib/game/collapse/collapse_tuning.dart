@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../constants.dart';
 import '../element_tier.dart';
+import '../modes/game_mode.dart';
 import '../systems/supernova_blast.dart';
 
 /// All Collapse-mode magic numbers. Nothing here retunes Classic.
@@ -17,17 +18,22 @@ abstract final class CollapseTuning {
   static const double remnantFriction = 0.4;
   static const double remnantRestitution = 0.05;
 
-  static double get remnantRadius =>
-      remnantRadiusFactor * ElementTier.iron.radius;
+  static double remnantRadiusFor(GameMode mode) =>
+      remnantRadiusFactor * ElementTier.iron.radiusFor(mode);
+
+  /// Collapse-only static alias (prefer [remnantRadiusFor] when mode varies).
+  static double get remnantRadius => remnantRadiusFor(GameMode.collapse);
 
   static double get remnantDensity =>
       remnantDensityFactor * ElementTier.iron.fixtureDensity;
 
-  /// Analytic Box2D mass (density × area) for threshold derivation.
-  static double get remnantMass {
-    final r = remnantRadius;
+  static double remnantMassFor(GameMode mode) {
+    final r = remnantRadiusFor(mode);
     return remnantDensity * math.pi * r * r;
   }
+
+  /// Analytic Box2D mass (density × area) for threshold derivation.
+  static double get remnantMass => remnantMassFor(GameMode.collapse);
 
   /// Relative density used for radial gravity force (matches Nucleus formula).
   static double get remnantRelativeDensity =>
@@ -53,15 +59,21 @@ abstract final class CollapseTuning {
   /// Free-fall √(2ad) overshoots badly once linear damping is in play.
   static const double gravityContactClosingCeiling = 15.0;
 
-  static double get blastDeliveredSpeed =>
+  static double blastDeliveredSpeedFor(GameMode mode) =>
       SupernovaBlast.impulseAtRadius(typicalRemnantSeparation) *
       remnantBlastImpulseGain /
-      remnantMass;
+      remnantMassFor(mode);
+
+  static double get blastDeliveredSpeed =>
+      blastDeliveredSpeedFor(GameMode.collapse);
 
   static double get gravityCeilingSpeed => gravityContactClosingCeiling;
 
+  static double kilonovaClosingSpeedFor(GameMode mode) =>
+      blastDeliveredSpeedFor(mode) * blastRetentionFraction;
+
   static double get kilonovaClosingSpeed =>
-      blastDeliveredSpeed * blastRetentionFraction;
+      kilonovaClosingSpeedFor(GameMode.collapse);
 
   // --- Kilonova payoff ---
   static const int kilonovaScore = 750;

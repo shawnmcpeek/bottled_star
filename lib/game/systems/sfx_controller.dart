@@ -9,14 +9,15 @@ import '../element_tier.dart';
 /// One-shot SFX: pentatonic guitar plucks on merge, spring hit on Fe+Fe / kilonova.
 ///
 /// Players are pooled and warmed at menu time. Playback uses [play] with a
-/// cached [AssetSource] — reliable across Android / iOS / Linux / web.
+/// cached [AssetSource] — AAC `.m4a` so iOS AVPlayer can decode them (Ogg
+/// Vorbis is not supported on Darwin).
 /// Android still opts into [PlayerMode.lowLatency] where SoundPool helps.
 class SfxController {
   SfxController._();
   static final SfxController instance = SfxController._();
 
-  static const _guitarAsset = 'sfx/guitar_string.ogg';
-  static const _springAsset = 'sfx/spring_metal.ogg';
+  static const _guitarAsset = 'sfx/guitar_string.m4a';
+  static const _springAsset = 'sfx/spring_metal.m4a';
 
   /// Minor-pentatonic climb H→Fe across one octave (rates stay in 0.5→1.0).
   /// Below ~0.5 many backends ignore playbackRate and play at 1.0 — which made
@@ -87,6 +88,8 @@ class SfxController {
     return player;
   }
 
+  /// Ambient so SFX and music share one session without exclusive playback focus.
+  /// (mixWithOthers is only legal with playback / playAndRecord / multiRoute.)
   static final AudioContext _sfxContext = AudioContext(
     android: const AudioContextAndroid(
       contentType: AndroidContentType.sonification,
@@ -95,8 +98,7 @@ class SfxController {
       stayAwake: false,
     ),
     iOS: AudioContextIOS(
-      category: AVAudioSessionCategory.playback,
-      options: const {AVAudioSessionOptions.mixWithOthers},
+      category: AVAudioSessionCategory.ambient,
     ),
   );
 

@@ -1,3 +1,6 @@
+import 'element_tuning.dart';
+import 'modes/game_mode.dart';
+
 enum ElementTier {
   hydrogen(0, 'H', 'Hydrogen', 14, 1, 0),
   helium(1, 'He', 'Helium', 18, 4, 1),
@@ -15,7 +18,7 @@ enum ElementTier {
     this.tier,
     this.symbol,
     this.displayName,
-    this.radius,
+    this.baseRadius,
     this.atomicMass,
     this.scoreOnCreate,
   );
@@ -23,9 +26,19 @@ enum ElementTier {
   final int tier;
   final String symbol;
   final String displayName;
-  final double radius;
+
+  /// Unscaled table radius (Challenge seed layout uses this via [radiusFor]).
+  final double baseRadius;
   final double atomicMass;
   final int scoreOnCreate;
+
+  /// Gameplay collision / render radius for [mode], including scale.
+  double radiusFor(GameMode mode) =>
+      ElementTuning.tableRadiusForTier(tier) *
+      ElementTuning.elementScaleFor(mode);
+
+  /// Legacy alias — prefer [baseRadius] or [radiusFor].
+  double get radius => baseRadius;
 
   bool get isHelium => this == ElementTier.helium;
   bool get isHydrogen => this == ElementTier.hydrogen;
@@ -42,6 +55,14 @@ enum ElementTier {
   }
 
   static ElementTier fromTier(int tier) => ElementTier.values[tier];
+
+  /// Reverse lookup by periodic symbol (`'Si'`, not `'silicon'`).
+  static ElementTier? fromSymbol(String symbol) {
+    for (final e in ElementTier.values) {
+      if (e.symbol == symbol) return e;
+    }
+    return null;
+  }
 
   /// Same-tier fusion (skips two rungs). Mg/S/Ar/Ca same-tier stay inert.
   /// H+H and He+He live here too so one table owns all self-pairs.
@@ -68,14 +89,27 @@ enum ElementTier {
   ///
   /// Precedence: same-tier self-pair before helium capture when both apply
   /// across different contacts — callers must sort candidate pairs accordingly.
-  static ElementTier? mergeResult(ElementTier a, ElementTier b) {
-    if (a == b) return sameTierMerges[a];
+  ///
+  /// [allowSameTier] disables [sameTierMerges] for Challenge `noSameTier`
+  /// levels. Pass via argument — never mutate static state (leaks across runs).
+  static ElementTier? mergeResult(
+    ElementTier a,
+    ElementTier b, {
+    bool allowSameTier = true,
+  }) {
+    if (a == b) {
+      return allowSameTier ? sameTierMerges[a] : null;
+    }
 
     if (a.isHelium) return heliumCapture(b);
     if (b.isHelium) return heliumCapture(a);
     return null;
   }
 
-  static bool isInertCollision(ElementTier a, ElementTier b) =>
-      mergeResult(a, b) == null;
+  static bool isInertCollision(
+    ElementTier a,
+    ElementTier b, {
+    bool allowSameTier = true,
+  }) =>
+      mergeResult(a, b, allowSameTier: allowSameTier) == null;
 }
