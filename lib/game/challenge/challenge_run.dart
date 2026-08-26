@@ -29,6 +29,13 @@ class ChallengeRunTracker {
 
   int shotsFired = 0;
 
+  /// Mid-run iron+iron supernovae this run. Fed by [onSupernova].
+  int supernovaCount = 0;
+
+  /// Latest live board composition, from the most recent [onBoardChanged].
+  /// Backs [EliminateGoal] — current occupancy, not cumulative production.
+  Map<ElementTier, int> _liveCounts = <ElementTier, int>{};
+
   /// Call at the moment a nucleus of [tier] is created (fusion product or
   /// inject). Checks [NeverProduceConstraint] immediately — even if a later
   /// step in the same chain would consume it.
@@ -41,6 +48,12 @@ class ChallengeRunTracker {
         status = ChallengeRunStatus.lost;
         return;
       }
+      if (c is MaxTotalProducedConstraint &&
+          c.element == tier &&
+          produced[tier]! > c.value) {
+        status = ChallengeRunStatus.lost;
+        return;
+      }
     }
   }
 
@@ -50,6 +63,7 @@ class ChallengeRunTracker {
     required Map<ElementTier, int> countsByElement,
   }) {
     if (status != ChallengeRunStatus.playing) return;
+    _liveCounts = countsByElement;
 
     for (final c in spec.constraints) {
       switch (c) {
@@ -65,7 +79,8 @@ class ChallengeRunTracker {
           }
         case NeverProduceConstraint():
         case NoSameTierConstraint():
-          break;
+        case MaxTotalProducedConstraint():
+          break; // checked in onElementCreated (cumulative, not live count)
       }
     }
   }
@@ -73,6 +88,12 @@ class ChallengeRunTracker {
   void onShotFired() {
     if (status != ChallengeRunStatus.playing) return;
     shotsFired++;
+  }
+
+  /// Call when a mid-run iron+iron supernova resolves.
+  void onSupernova() {
+    if (status != ChallengeRunStatus.playing) return;
+    supernovaCount++;
   }
 
   /// Evaluate goals after the board settles following a shot.
@@ -104,6 +125,8 @@ class ChallengeRunTracker {
         (produced[element] ?? 0) >= count,
       BoardUnderGoal(:final value) => boardBodies < value,
       SurviveGoal(:final shots) => shotsFired >= shots,
+      EliminateGoal(:final element) => (_liveCounts[element] ?? 0) == 0,
+      CauseSupernovaGoal(:final count) => supernovaCount >= count,
     };
   }
 

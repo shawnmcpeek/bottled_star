@@ -13,8 +13,7 @@ extension GameModeInfo on GameMode {
         GameMode.classic =>
           'Fuse to iron. Let the star go quietly, or let it go loud.',
         GameMode.collapse => 'Every supernova leaves something behind.',
-        GameMode.challenge =>
-          'Preset starts. Limited shots. Coming soon.',
+        GameMode.challenge => 'Preset starts. Limited shots.',
       };
 
   /// Separate high-score keys. Never merge these boards.

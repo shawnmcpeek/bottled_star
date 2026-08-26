@@ -94,8 +94,8 @@ class _ChallengeUnlockPanelState extends State<ChallengeUnlockPanel> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Preset starts. Limited shots. Levels are still being built — '
-              'buy now and they unlock when they ship.',
+              'Preset starts. Limited shots. Twenty levels, unlocked one '
+              'clear at a time.',
               textAlign: TextAlign.center,
               style: GameFonts.prose(
                 fontSize: 15,

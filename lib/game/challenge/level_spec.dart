@@ -598,6 +598,12 @@ sealed class LevelGoal {
       'survive' => SurviveGoal(
           shots: _reqInt(json, 'shots', levelId: levelId),
         ),
+      'eliminate' => EliminateGoal(
+          element: _reqElement(json, 'element', levelId: levelId),
+        ),
+      'causeSupernova' => CauseSupernovaGoal(
+          count: _reqInt(json, 'count', levelId: levelId),
+        ),
       _ => throw LevelParseException(
           'unknown goal type "$type"',
           levelId: levelId,
@@ -625,6 +631,22 @@ class SurviveGoal extends LevelGoal {
   final int shots;
 }
 
+/// Board must currently hold zero of [element]. Checked against live board
+/// composition, not cumulative production — a seeded element consumed by a
+/// same-tier fusion or a supernova blast satisfies this.
+@immutable
+class EliminateGoal extends LevelGoal {
+  const EliminateGoal({required this.element});
+  final ElementTier element;
+}
+
+/// At least [count] mid-run iron+iron supernovae this run.
+@immutable
+class CauseSupernovaGoal extends LevelGoal {
+  const CauseSupernovaGoal({required this.count});
+  final int count;
+}
+
 sealed class LevelConstraint {
   const LevelConstraint();
 
@@ -645,6 +667,10 @@ sealed class LevelConstraint {
           value: _reqInt(json, 'value', levelId: levelId),
         ),
       'noSameTier' => const NoSameTierConstraint(),
+      'maxTotalProduced' => MaxTotalProducedConstraint(
+          element: _reqElement(json, 'element', levelId: levelId),
+          value: _reqInt(json, 'value', levelId: levelId),
+        ),
       _ => throw LevelParseException(
           'unknown constraint type "$type"',
           levelId: levelId,
@@ -657,6 +683,15 @@ sealed class LevelConstraint {
 class NeverProduceConstraint extends LevelConstraint {
   const NeverProduceConstraint({required this.element});
   final ElementTier element;
+}
+
+/// Lifetime cap on how many of [element] may ever be created this run —
+/// cumulative, unlike [MaxOfElementConstraint]'s simultaneous-board cap.
+@immutable
+class MaxTotalProducedConstraint extends LevelConstraint {
+  const MaxTotalProducedConstraint({required this.element, required this.value});
+  final ElementTier element;
+  final int value;
 }
 
 @immutable

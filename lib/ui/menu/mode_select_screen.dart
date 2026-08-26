@@ -58,18 +58,11 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
   Future<void> _open(GameMode mode) async {
     if (mode == GameMode.challenge) {
       if (!PurchasesController.instance.hasChallenge) {
-        await showChallengeUnlockSheet(context);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Challenge levels coming soon',
-              style: GameFonts.ui(fontSize: 14),
-            ),
-            backgroundColor: GameColors.space,
-          ),
-        );
+        final unlocked = await showChallengeUnlockSheet(context);
+        if (!unlocked || !mounted) return;
       }
+      await Navigator.of(context).pushNamed('/challenge-levels');
+      if (mounted) setState(() {});
       return;
     }
 
@@ -140,7 +133,7 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
                       const SizedBox(height: 18),
                       _ModeCard(
                         mode: GameMode.challenge,
-                        badge: hasChallenge ? 'Coming soon' : 'Unlock',
+                        badge: hasChallenge ? null : 'Unlock',
                         onTap: () => _open(GameMode.challenge),
                       ),
                     ],

@@ -101,7 +101,7 @@ class ChallengeIapPreviewScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Preset starts. Limited shots. Coming soon.',
+                                'Preset starts. Limited shots.',
                                 textAlign: TextAlign.center,
                                 style: GameFonts.prose(
                                   fontSize: 15,

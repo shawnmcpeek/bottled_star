@@ -17,6 +17,11 @@ class Injector extends PositionComponent {
   double cooldown = 0;
   ElementTier loadedTier = ElementTier.hydrogen;
 
+  /// Challenge `injectionArc` restriction, in radians (atan2 convention,
+  /// i.e. already normalized to (-pi, pi]). Null = unrestricted.
+  double? minOrbitAngle;
+  double? maxOrbitAngle;
+
   double get orbitRadius =>
       GameConstants.chamberRadius + GameConstants.injectorOrbitGap;
 
@@ -32,11 +37,18 @@ class Injector extends PositionComponent {
 
   void aimToward(Vector2 worldPoint) {
     if (worldPoint.length2 < 0.0001) return;
-    orbitAngle = math.atan2(worldPoint.y, worldPoint.x);
+    orbitAngle = _clampToArc(math.atan2(worldPoint.y, worldPoint.x));
   }
 
   void rotateBy(double delta) {
-    orbitAngle += delta;
+    orbitAngle = _clampToArc(orbitAngle + delta);
+  }
+
+  double _clampToArc(double angle) {
+    final min = minOrbitAngle;
+    final max = maxOrbitAngle;
+    if (min == null || max == null) return angle;
+    return angle.clamp(min, max);
   }
 
   void startCharge() {

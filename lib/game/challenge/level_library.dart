@@ -15,6 +15,8 @@ class LevelLibrary {
 
   static const List<String> packAssetPaths = [
     'assets/levels/pack1.json',
+    'assets/levels/pack2.json',
+    'assets/levels/pack3.json',
   ];
 
   bool get isLoaded => _loaded;

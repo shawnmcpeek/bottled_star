@@ -6,6 +6,9 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'challenge/challenge_progress.dart';
+import 'challenge/challenge_run.dart';
+import 'challenge/level_spec.dart';
 import 'constants.dart';
 import 'element_art.dart';
 import 'element_tier.dart';
@@ -20,8 +23,9 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   BottledStarGame({
     required this.scoreStore,
     this.mode = GameMode.classic,
+    this.challengeLevel,
   }) : super(
-          world: BottledStarWorld(mode: mode),
+          world: BottledStarWorld(mode: mode, challengeLevel: challengeLevel),
           gravity: Vector2.zero(),
           zoom: 1,
         ) {
@@ -35,11 +39,15 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       ..onShake = _handleShake
       ..onShotFired = _handleShotFired
       ..onMerge = _handleMerge
-      ..onRimPressure = _handleRimPressure;
+      ..onRimPressure = _handleRimPressure
+      ..onChallengeEnd = _handleChallengeEnd;
   }
 
   final ScoreStore scoreStore;
   final GameMode mode;
+
+  /// Set for Challenge runs; null for Classic / Collapse.
+  final LevelSpec? challengeLevel;
   FirstRunGuide? firstRunGuide;
 
   final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
@@ -59,6 +67,8 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   final ValueNotifier<int> shotCountNotifier = ValueNotifier(0);
   final ValueNotifier<int> kilonovaCountNotifier = ValueNotifier(0);
   final ValueNotifier<String> collapseBestNotifier = ValueNotifier('');
+  final ValueNotifier<ChallengeRunStatus?> challengeStatusNotifier =
+      ValueNotifier(null);
 
   bool _pointerDown = false;
   int? _activePointer;
@@ -172,6 +182,20 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     endingCardNotifier.value = true;
   }
 
+  Future<void> _handleChallengeEnd(ChallengeRunStatus status) async {
+    shotCountNotifier.value = world.shotCount;
+    challengeStatusNotifier.value = status;
+    if (status == ChallengeRunStatus.won) {
+      final level = challengeLevel;
+      if (level != null) {
+        await ChallengeProgress.instance.recordClear(
+          levelId: level.id,
+          shots: world.shotCount,
+        );
+      }
+    }
+  }
+
   void _handleFlash(double seconds) {
     _flashTime = seconds;
     flashNotifier.value = 1;
@@ -195,6 +219,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     flashNotifier.value = 0;
     shotCountNotifier.value = 0;
     kilonovaCountNotifier.value = 0;
+    challengeStatusNotifier.value = null;
     camera.viewfinder.position = _cameraBase.clone();
   }
 

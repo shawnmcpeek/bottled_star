@@ -16,6 +16,7 @@ import '../modes/game_mode.dart';
 import '../modes/mode_rules.dart';
 import 'ending_controller.dart';
 import 'injection_queue.dart';
+import 'injection_source.dart';
 import 'merge_system.dart';
 import 'haptics_controller.dart';
 import 'sfx_controller.dart';
@@ -31,6 +32,7 @@ typedef FlashCallback = void Function(double seconds);
 typedef ShakeCallback = void Function(double seconds, double intensity);
 typedef VoidGameCallback = void Function();
 typedef PressureCallback = void Function(double normalized01);
+typedef ChallengeEndCallback = void Function(ChallengeRunStatus status);
 
 class BottledStarWorld extends Forge2DWorld {
   BottledStarWorld({
@@ -46,6 +48,7 @@ class BottledStarWorld extends Forge2DWorld {
     VoidGameCallback? onShotFired,
     VoidGameCallback? onMerge,
     PressureCallback? onRimPressure,
+    ChallengeEndCallback? onChallengeEnd,
   })  : onScore = onScore ?? ((_, _) {}),
         onGameOver = onGameOver ?? ((_) {}),
         onTierReached = onTierReached ?? ((_) {}),
@@ -56,7 +59,9 @@ class BottledStarWorld extends Forge2DWorld {
         onShotFired = onShotFired ?? (() {}),
         onMerge = onMerge ?? (() {}),
         onRimPressure = onRimPressure ?? ((_) {}),
+        onChallengeEnd = onChallengeEnd ?? ((_) {}),
         allowSameTierMerges = !(challengeLevel?.noSameTier ?? false),
+        injectionQueue = challengeLevel?.createQueue() ?? InjectionQueue(),
         super(gravity: Vector2.zero());
 
   final GameMode mode;
@@ -78,13 +83,16 @@ class BottledStarWorld extends Forge2DWorld {
   VoidGameCallback onShotFired;
   VoidGameCallback onMerge;
   PressureCallback onRimPressure;
+  ChallengeEndCallback onChallengeEnd;
 
   late final MergeSystem mergeSystem;
-  final InjectionQueue injectionQueue = InjectionQueue();
+  final InjectionSource injectionQueue;
   late final ChamberWall chamber;
   final Injector injector = Injector();
   late final ChamberBackdrop backdrop;
   RemnantSystem? remnantSystem;
+  ChallengeRunTracker? challengeTracker;
+  double _sinceLastChallengeShot = 0;
 
   final List<Nucleus> nuclei = [];
   final List<void Function()> _postStepOps = [];
@@ -184,8 +192,49 @@ class BottledStarWorld extends Forge2DWorld {
     await add(injector);
     _publishQueue();
 
+    _setupChallenge();
+
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
+  }
+
+  /// Seed starting nuclei, arm the goal/constraint tracker, and clamp the
+  /// injector to `injectionArc` for a Challenge level. No-op otherwise.
+  /// Called from [onLoad] and again from [resetRun] (retry re-seeds fresh).
+  void _setupChallenge() {
+    final level = challengeLevel;
+    if (level == null) return;
+
+    challengeTracker = ChallengeRunTracker(level);
+    _sinceLastChallengeShot = 0;
+
+    for (final body in level.resolveSeed(
+      chamberRadius: GameConstants.chamberRadius,
+    )) {
+      spawnNucleus(
+        tier: body.element,
+        position: Vector2(body.x, body.y),
+        countsAsChallengeProduced: false,
+      );
+    }
+
+    final arc = level.injectionArc;
+    if (arc != null) {
+      final centerDeg =
+          arc.centerDeg > 180 ? arc.centerDeg - 360 : arc.centerDeg;
+      final centerRad = centerDeg * math.pi / 180;
+      final halfWidthRad = (arc.widthDeg / 2) * math.pi / 180;
+      final min = centerRad - halfWidthRad;
+      final max = centerRad + halfWidthRad;
+      injector
+        ..minOrbitAngle = min
+        ..maxOrbitAngle = max
+        ..orbitAngle = centerRad;
+    } else {
+      injector
+        ..minOrbitAngle = null
+        ..maxOrbitAngle = null;
+    }
   }
 
   /// Attach remnants for Collapse, or for a Challenge level with
@@ -241,6 +290,9 @@ class BottledStarWorld extends Forge2DWorld {
       ..cooldown = 0
       ..orbitAngle = -math.pi / 2
       ..loadedTier = injectionQueue.current;
+
+    _setupChallenge();
+
     _publishQueue();
   }
 
@@ -255,6 +307,7 @@ class BottledStarWorld extends Forge2DWorld {
     bool freshFromMerge = false,
     bool asProjectile = false,
     Vector2? velocity,
+    bool countsAsChallengeProduced = true,
   }) {
     late Nucleus nucleus;
     nucleus = Nucleus(
@@ -268,6 +321,16 @@ class BottledStarWorld extends Forge2DWorld {
     nuclei.add(nucleus);
     add(nucleus);
     _noteTierCreated(tier);
+
+    if (countsAsChallengeProduced) {
+      final tracker = challengeTracker;
+      if (tracker != null) {
+        tracker.onElementCreated(tier);
+        if (tracker.status == ChallengeRunStatus.lost) {
+          _endChallengeRun(ChallengeRunStatus.lost);
+        }
+      }
+    }
     return nucleus;
   }
 
@@ -289,6 +352,10 @@ class BottledStarWorld extends Forge2DWorld {
 
   bool fireInjector() {
     if (!inputEnabled || gameOver || _injectorLockout > 0) return false;
+    // Challenge's fixed queue throws on consume() once exhausted — the
+    // settle delay leaves a window after the last budgeted shot where
+    // input is technically still live. Block it here instead.
+    if (injectionQueue.isExhausted) return false;
     final power01 = injector.releaseCharge();
     if (power01 == null) return false;
 
@@ -316,6 +383,12 @@ class BottledStarWorld extends Forge2DWorld {
     );
     shotCount++;
     onShotFired();
+
+    final tracker = challengeTracker;
+    if (tracker != null) {
+      tracker.onShotFired();
+      _sinceLastChallengeShot = 0;
+    }
     return true;
   }
 
@@ -371,7 +444,66 @@ class BottledStarWorld extends Forge2DWorld {
       drainPostStep();
 
       _updateRimPressure(dt);
+
+      if (challengeTracker != null) {
+        _checkChallengeConstraints();
+        if (!gameOver) _updateChallengeSettle(dt);
+      }
     }
+  }
+
+  /// Constraints ([MaxBodiesConstraint], [MaxOfElementConstraint]) are
+  /// checked every tick — they must trip the instant they're violated, not
+  /// wait for the board to settle.
+  void _checkChallengeConstraints() {
+    final tracker = challengeTracker;
+    if (tracker == null || tracker.status != ChallengeRunStatus.playing) {
+      return;
+    }
+    final counts = <ElementTier, int>{};
+    var total = 0;
+    for (final n in nuclei) {
+      if (!n.isMounted || n.pendingDestroy) continue;
+      total++;
+      counts[n.tier] = (counts[n.tier] ?? 0) + 1;
+    }
+    tracker.onBoardChanged(totalBodies: total, countsByElement: counts);
+    if (tracker.status != ChallengeRunStatus.playing) {
+      _endChallengeRun(tracker.status);
+    }
+  }
+
+  /// Goals ([ProduceGoal] etc.) and the budget-exhausted loss are only
+  /// evaluated once the board has been quiet for
+  /// [GameConstants.challengeSettleSeconds] — otherwise a shot still mid-air
+  /// could be judged before it has a chance to land.
+  void _updateChallengeSettle(double dt) {
+    final tracker = challengeTracker;
+    if (tracker == null || tracker.status != ChallengeRunStatus.playing) {
+      return;
+    }
+    _sinceLastChallengeShot += dt;
+    if (_sinceLastChallengeShot < GameConstants.challengeSettleSeconds) return;
+
+    final boardBodies =
+        nuclei.where((n) => n.isMounted && !n.pendingDestroy).length;
+    tracker.evaluateAtSettle(boardBodies: boardBodies);
+    if (tracker.status != ChallengeRunStatus.playing) {
+      _endChallengeRun(tracker.status);
+    }
+  }
+
+  void _endChallengeRun(ChallengeRunStatus status) {
+    if (gameOver) return;
+    gameOver = true;
+    inputEnabled = false;
+    physicsEnabled = false;
+    rimPressureEnabled = false;
+    injector.cancelCharge();
+    for (final n in nuclei) {
+      if (n.isMounted) n.body.linearVelocity.setZero();
+    }
+    onChallengeEnd(status);
   }
 
   void _updateRimPressure(double dt) {
@@ -388,7 +520,11 @@ class BottledStarWorld extends Forge2DWorld {
           n.rimPressure.clamp(0.0, GameConstants.kRimPressureLimit);
 
       if (n.rimPressure >= GameConstants.kRimPressureLimit) {
-        _beginRunEnding();
+        if (challengeLevel != null) {
+          _endChallengeRun(ChallengeRunStatus.lost);
+        } else {
+          _beginRunEnding();
+        }
         return;
       }
     }
@@ -447,6 +583,7 @@ class BottledStarWorld extends Forge2DWorld {
 
     score += GameConstants.kSupernovaScore;
     onScore(GameConstants.kSupernovaScore, score);
+    challengeTracker?.onSupernova();
 
     SfxController.instance.playSpringHit();
     HapticsController.instance.playBlast();

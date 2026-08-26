@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 1,
+  "pack": 3,
+  "levels": [
+    {
+      "id": "p3_01",
+      "name": "Clean Slate",
+      "blurb": "Three carbons. Walk every one of them up — leave none behind.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "H", "H", "He", "H", "H", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 9 },
+
+      "goals": [
+        { "type": "eliminate", "element": "C" }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 10 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 3 }
+    },
+
+    {
+      "id": "p3_02",
+      "name": "Housekeeping",
+      "blurb": "Five carbons this time. The board isn't clean until every one of them is gone.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 5, "placement": "ring", "radiusFrac": 0.4, "phaseDeg": 0 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "He", "He", "He", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 10 },
+
+      "goals": [
+        { "type": "eliminate", "element": "C" }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 12 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 5 }
+    },
+
+    {
+      "id": "p3_03",
+      "name": "Don't Look Away",
+      "blurb": "You can't hoard more than two heliums at once — every spare has to go somewhere. Make sure it's not into each other.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "He", "He", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 7 },
+
+      "goals": [
+        { "type": "eliminate", "element": "C" }
+      ],
+
+      "constraints": [
+        { "type": "maxOfElement", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 10 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 3 }
+    },
+
+    {
+      "id": "p3_04",
+      "name": "The Last One",
+      "blurb": "Four carbons. Two of them are close enough to solve for free — no helium required.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [70, 110] },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 300, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 4 },
+
+      "goals": [
+        { "type": "eliminate", "element": "C" }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p3_05",
+      "name": "Full Sweep",
+      "blurb": "Five carbons, one close pair among them, helium that can't pile up. Clear the board.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [70, 110] },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 5 },
+
+      "goals": [
+        { "type": "eliminate", "element": "C" }
+      ],
+
+      "constraints": [
+        { "type": "maxOfElement", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 12 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 5 }
+    },
+
+    {
+      "id": "p3_06",
+      "name": "First Light",
+      "blurb": "Two calciums. Finish them both, then let them find each other. Iron sinks to the core for a reason.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Ca", "count": 2, "placement": "ring", "radiusFrac": 0.5, "phaseDeg": 0 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 16 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p3_07",
+      "name": "Chain Reaction",
+      "blurb": "Four calciums. Two blasts, not one.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Ca", "count": 4, "placement": "ring", "radiusFrac": 0.45, "phaseDeg": 0 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "He", "He", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 8 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 16 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p3_08",
+      "name": "Rim Runner",
+      "blurb": "Two calciums to finish, two more carbons cluttering the chamber. Don't let it get away from you before the blast even lands.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Ca", "count": 2, "placement": "ring", "radiusFrac": 0.5, "phaseDeg": 0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p3_09",
+      "name": "Two Points of Light",
+      "blurb": "Same four calciums. Exactly four heliums between them — one each, first try.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Ca", "count": 4, "placement": "ring", "radiusFrac": 0.45, "phaseDeg": 0 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "He", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 4 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 16 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p3_10",
+      "name": "Two Is Enough",
+      "blurb": "Two calciums to finish. Two carbons sitting close by that must never touch.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Ca", "count": 2, "placement": "ring", "radiusFrac": 0.5, "phaseDeg": 0 },
+          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [70, 110] }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "neverProduce", "element": "Mg" },
+        { "type": "maxBodies", "value": 16 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p3_11",
+      "name": "Strict Diet",
+      "blurb": "One helium, ever. That's the whole rule.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 2 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 1 },
+        { "type": "maxBodies", "value": 6 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
+    },
+
+    {
+      "id": "p3_12",
+      "name": "Two Bites",
+      "blurb": "Two reagents, two heliums total. Split them exactly right.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 4 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 },
+        { "type": "produce", "element": "Ne", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p3_13",
+      "name": "Overdraft",
+      "blurb": "One helium is all you need. The ration allows two. The third is where it ends.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
+    },
+
+    {
+      "id": "p3_14",
+      "name": "Rationed, Compounded",
+      "blurb": "One carbon, all the way to magnesium. Three heliums, exactly, no misses allowed.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "produce", "element": "Mg", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 3 },
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 6 }
+    },
+
+    {
+      "id": "p3_15",
+      "name": "The Full Ledger",
+      "blurb": "Carbon to oxygen, neon all the way to calcium. Six heliums, total, for both.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 },
+        { "type": "produce", "element": "Ca", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 6 },
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 12 }
+    },
+
+    {
+      "id": "p3_16",
+      "name": "Vanishing Act",
+      "blurb": "Two carbons to clear. Two heliums, total, is all the ration allows.",
+
+      "seed": {
+        "bodies": [
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 4 },
+
+      "goals": [
+        { "type": "eliminate", "element": "C" }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p3_17",
+      "name": "Full Circle, Detonated",
+      "blurb": "One iron already waiting. One calcium to finish. Bring them together and the board goes quiet again.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.4 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 1 },
+        { "type": "eliminate", "element": "Fe" }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 12 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 6 }
+    },
+
+    {
+      "id": "p3_18",
+      "name": "Rationed Cage",
+      "blurb": "Caged again. This time only two heliums are allowed to ever exist — nudging the wall is free, but don't waste a pairing.",
+
+      "seed": {
+        "bodies": [
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Fe", "count": 4, "placement": "ring", "radiusFrac": 0.47, "phaseDeg": 0 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 8 },
+
+      "goals": [
+        { "type": "produce", "element": "He", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxTotalProduced", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 12 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 5 }
+    },
+
+    {
+      "id": "p3_19",
+      "name": "Three Problems",
+      "blurb": "Two calciums for a blast, one oxygen on the side. Three heliums, no more.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Ca", "count": 2, "placement": "ring", "radiusFrac": 0.5, "phaseDeg": 0 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.35 }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "He", "He", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 7 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 1 },
+        { "type": "produce", "element": "Ne", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 3 }
+    },
+
+    {
+      "id": "p3_20",
+      "name": "Everything",
+      "blurb": "One iron waiting, one calcium to finish, a decoy pair that's illegal to touch, and a ration that leaves no room for a wasted shot.",
+
+      "seed": {
+        "bodies": [
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.4 },
+          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [250, 290] }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "causeSupernova", "count": 1 },
+        { "type": "eliminate", "element": "Fe" }
+      ],
+
+      "constraints": [
+        { "type": "neverProduce", "element": "Mg" },
+        { "type": "maxTotalProduced", "element": "He", "value": 2 },
+        { "type": "maxBodies", "value": 12 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    }
+  ]
+}

@@ -371,13 +371,24 @@ void main() {
   });
 
   group('LevelLibrary asset load', () {
-    test('loads pack1.json from assets', () async {
+    test('loads pack1.json, pack2.json and pack3.json from assets', () async {
       final lib = LevelLibrary();
       await lib.loadAll();
       final level = lib.require('p1_09');
       expect(level.name, 'Starved');
-      expect(lib.allLevels, hasLength(1));
-      expect(lib.pack(1)!.levels.first.id, 'p1_09');
+      expect(lib.allLevels, hasLength(60));
+      expect(
+        lib.pack(1)!.levels.map((l) => l.id).toList(),
+        [for (var i = 1; i <= 20; i++) 'p1_${i.toString().padLeft(2, '0')}'],
+      );
+      expect(
+        lib.pack(2)!.levels.map((l) => l.id).toList(),
+        [for (var i = 1; i <= 20; i++) 'p2_${i.toString().padLeft(2, '0')}'],
+      );
+      expect(
+        lib.pack(3)!.levels.map((l) => l.id).toList(),
+        [for (var i = 1; i <= 20; i++) 'p3_${i.toString().padLeft(2, '0')}'],
+      );
     });
   });
 
@@ -509,6 +520,74 @@ void main() {
         ),
       );
       tracker.onBoardChanged(totalBodies: 3, countsByElement: const {});
+      expect(tracker.status, ChallengeRunStatus.lost);
+    });
+
+    test('eliminate wins only once live count reaches zero', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'eliminate', 'element': 'Fe'},
+          ],
+          constraints: [],
+        ),
+      );
+      tracker.onShotFired();
+      tracker.onBoardChanged(
+        totalBodies: 1,
+        countsByElement: {ElementTier.iron: 1},
+      );
+      expect(tracker.evaluateAtSettle(boardBodies: 1), isFalse);
+      expect(tracker.status, ChallengeRunStatus.playing);
+
+      tracker.onBoardChanged(totalBodies: 0, countsByElement: const {});
+      expect(tracker.evaluateAtSettle(boardBodies: 0), isTrue);
+      expect(tracker.status, ChallengeRunStatus.won);
+    });
+
+    test('causeSupernova wins once the count is reached', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'causeSupernova', 'count': 2},
+          ],
+          constraints: [],
+        ),
+      );
+      tracker.onShotFired();
+      tracker.onSupernova();
+      expect(tracker.evaluateAtSettle(boardBodies: 0), isFalse);
+      expect(tracker.status, ChallengeRunStatus.playing);
+
+      tracker.onSupernova();
+      expect(tracker.evaluateAtSettle(boardBodies: 0), isTrue);
+      expect(tracker.status, ChallengeRunStatus.won);
+    });
+
+    test('maxTotalProduced is cumulative, not simultaneous board count', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'produce', 'element': 'Fe', 'count': 1},
+          ],
+          constraints: [
+            {'type': 'maxTotalProduced', 'element': 'He', 'value': 2},
+          ],
+        ),
+      );
+      tracker.onElementCreated(ElementTier.helium);
+      tracker.onElementCreated(ElementTier.helium);
+      expect(tracker.status, ChallengeRunStatus.playing);
+
+      // Board never holds more than one He at a time (each is consumed
+      // immediately) — only the lifetime total trips the constraint.
+      tracker.onBoardChanged(
+        totalBodies: 1,
+        countsByElement: {ElementTier.helium: 1},
+      );
+      expect(tracker.status, ChallengeRunStatus.playing);
+
+      tracker.onElementCreated(ElementTier.helium);
       expect(tracker.status, ChallengeRunStatus.lost);
     });
   });

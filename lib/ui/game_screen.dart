@@ -2,6 +2,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../game/bottled_star_game.dart';
+import '../game/challenge/challenge_progress.dart';
+import '../game/challenge/challenge_run.dart';
+import '../game/challenge/level_spec.dart';
 import '../game/constants.dart';
 import '../game/element_art.dart';
 import '../game/element_tier.dart';
@@ -25,9 +28,16 @@ import 'physics_debug_overlay.dart';
 import 'quiet_end_button.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, this.mode = GameMode.classic});
+  const GameScreen({
+    super.key,
+    this.mode = GameMode.classic,
+    this.challengeLevel,
+  });
 
   final GameMode mode;
+
+  /// Set when [mode] is [GameMode.challenge]; null otherwise.
+  final LevelSpec? challengeLevel;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -47,8 +57,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _scoreStore = ScoreStore(mode: widget.mode);
     _settings = SettingsStore();
-    _game = BottledStarGame(scoreStore: _scoreStore, mode: widget.mode);
+    _game = BottledStarGame(
+      scoreStore: _scoreStore,
+      mode: widget.mode,
+      challengeLevel: widget.challengeLevel,
+    );
     _game.gameOverNotifier.addListener(_onGameOverChanged);
+    _game.challengeStatusNotifier.addListener(_onChallengeStatusChanged);
     _bootstrap();
   }
 
@@ -121,11 +136,20 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _onChallengeStatusChanged() {
+    if (_game.challengeStatusNotifier.value != null) {
+      _game.overlays.add('challengeEnd');
+    } else {
+      _game.overlays.remove('challengeEnd');
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     MusicController.instance.stop();
     _game.gameOverNotifier.removeListener(_onGameOverChanged);
+    _game.challengeStatusNotifier.removeListener(_onChallengeStatusChanged);
     _game.firstRunGuide = null;
     _guide?.dispose();
     _game.pauseEngine();
@@ -154,6 +178,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                   'hud': (_, _) =>
                       HudOverlay(game: _game, hideLeave: _showGuide),
                   'ending': (_, _) => EndingOverlay(game: _game),
+                  'challengeEnd': (_, _) => ChallengeEndOverlay(game: _game),
                 },
                 initialActiveOverlays: const ['hud'],
               ),
@@ -222,98 +247,117 @@ class HudOverlay extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: IgnorePointer(
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: game.scoreNotifier,
-                        builder: (_, score, _) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('SCORE', style: GameFonts.label()),
-                              Text(
-                                '$score',
-                                style: GameFonts.score(weight: FontWeight.w500),
-                              ),
-                              if (game.mode == GameMode.collapse) ...[
-                                const SizedBox(height: 10),
-                                ValueListenableBuilder<int>(
-                                  valueListenable: game.kilonovaCountNotifier,
-                                  builder: (_, kilos, _) {
-                                    return Text(
-                                      'KILONOVAS  $kilos',
-                                      style: GameFonts.label(fontSize: 12),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 4),
-                                ValueListenableBuilder<int>(
-                                  valueListenable: game.shotCountNotifier,
-                                  builder: (_, shots, _) {
-                                    return Text(
-                                      'SHOTS  $shots',
-                                      style: GameFonts.label(fontSize: 12),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  IgnorePointer(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('BEST', style: GameFonts.label()),
-                        if (game.mode == GameMode.collapse)
-                          ValueListenableBuilder<String>(
-                            valueListenable: game.collapseBestNotifier,
-                            builder: (_, best, _) {
-                              return Text(
-                                best.isEmpty ? '—' : best,
-                                textAlign: TextAlign.right,
-                                style: GameFonts.ui(
-                                  fontSize: 14,
-                                  weight: FontWeight.w500,
-                                  color: GameColors.rimMetal,
-                                ),
-                              );
-                            },
-                          )
-                        else
-                          ValueListenableBuilder<int>(
-                            valueListenable: game.highScoreNotifier,
-                            builder: (_, best, _) {
-                              return Text(
-                                '$best',
-                                style: GameFonts.score(
-                                  fontSize: 22,
-                                  weight: FontWeight.w500,
-                                  color: GameColors.rimMetal,
-                                ),
-                              );
-                            },
+                children: game.mode == GameMode.challenge
+                    ? [
+                        Expanded(
+                          child: IgnorePointer(
+                            child: _ChallengeGoalPanel(game: game),
                           ),
-                        const SizedBox(height: 6),
-                        ValueListenableBuilder<String>(
-                          valueListenable: game.bestElementNotifier,
-                          builder: (_, symbol, _) {
-                            return Text(
-                              'PEAK  $symbol',
-                              style: GameFonts.label(fontSize: 12),
-                            );
-                          },
                         ),
+                        IgnorePointer(child: _ChallengeParPanel(game: game)),
+                        const SizedBox(width: 4),
+                        if (!hideLeave) LeaveRunButton(game: game),
+                      ]
+                    : [
+                        Expanded(
+                          child: IgnorePointer(
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: game.scoreNotifier,
+                              builder: (_, score, _) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('SCORE', style: GameFonts.label()),
+                                    Text(
+                                      '$score',
+                                      style: GameFonts.score(
+                                        weight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (game.mode == GameMode.collapse) ...[
+                                      const SizedBox(height: 10),
+                                      ValueListenableBuilder<int>(
+                                        valueListenable:
+                                            game.kilonovaCountNotifier,
+                                        builder: (_, kilos, _) {
+                                          return Text(
+                                            'KILONOVAS  $kilos',
+                                            style: GameFonts.label(
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 4),
+                                      ValueListenableBuilder<int>(
+                                        valueListenable:
+                                            game.shotCountNotifier,
+                                        builder: (_, shots, _) {
+                                          return Text(
+                                            'SHOTS  $shots',
+                                            style: GameFonts.label(
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        IgnorePointer(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('BEST', style: GameFonts.label()),
+                              if (game.mode == GameMode.collapse)
+                                ValueListenableBuilder<String>(
+                                  valueListenable: game.collapseBestNotifier,
+                                  builder: (_, best, _) {
+                                    return Text(
+                                      best.isEmpty ? '—' : best,
+                                      textAlign: TextAlign.right,
+                                      style: GameFonts.ui(
+                                        fontSize: 14,
+                                        weight: FontWeight.w500,
+                                        color: GameColors.rimMetal,
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                ValueListenableBuilder<int>(
+                                  valueListenable: game.highScoreNotifier,
+                                  builder: (_, best, _) {
+                                    return Text(
+                                      '$best',
+                                      style: GameFonts.score(
+                                        fontSize: 22,
+                                        weight: FontWeight.w500,
+                                        color: GameColors.rimMetal,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              const SizedBox(height: 6),
+                              ValueListenableBuilder<String>(
+                                valueListenable: game.bestElementNotifier,
+                                builder: (_, symbol, _) {
+                                  return Text(
+                                    'PEAK  $symbol',
+                                    style: GameFonts.label(fontSize: 12),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        if (!hideLeave) LeaveRunButton(game: game),
                       ],
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  if (!hideLeave) LeaveRunButton(game: game),
-                ],
               ),
             ),
           ),
@@ -373,6 +417,79 @@ class HudOverlay extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ChallengeGoalPanel extends StatelessWidget {
+  const _ChallengeGoalPanel({required this.game});
+
+  final BottledStarGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = game.challengeLevel;
+    if (level == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('GOAL', style: GameFonts.label()),
+        for (final goal in level.goals)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              _describeChallengeGoal(goal),
+              style: GameFonts.ui(fontSize: 15, weight: FontWeight.w600),
+            ),
+          ),
+        const SizedBox(height: 8),
+        ValueListenableBuilder<int>(
+          valueListenable: game.shotCountNotifier,
+          builder: (_, shots, _) {
+            return Text(
+              'SHOTS  $shots / ${level.budgetShots}',
+              style: GameFonts.label(fontSize: 12),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ChallengeParPanel extends StatelessWidget {
+  const _ChallengeParPanel({required this.game});
+
+  final BottledStarGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = game.challengeLevel;
+    if (level == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('PAR', style: GameFonts.label()),
+        Text(
+          '${level.parShots}',
+          style: GameFonts.score(
+            fontSize: 22,
+            weight: FontWeight.w500,
+            color: GameColors.rimMetal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _describeChallengeGoal(LevelGoal goal) {
+  return switch (goal) {
+    ProduceGoal(:final element, :final count) =>
+      'Produce $count× ${element.symbol}',
+    BoardUnderGoal(:final value) => 'Board under $value',
+    SurviveGoal(:final shots) => 'Survive $shots shots',
+    EliminateGoal(:final element) => 'Eliminate all ${element.symbol}',
+    CauseSupernovaGoal(:final count) => 'Cause $count× supernova',
+  };
 }
 
 class ShotPreviewRow extends StatelessWidget {
@@ -482,6 +599,111 @@ class _ShotChip extends StatelessWidget {
           child: chipFace,
         ),
       ],
+    );
+  }
+}
+
+class ChallengeEndOverlay extends StatelessWidget {
+  const ChallengeEndOverlay({super.key, required this.game});
+
+  final BottledStarGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ChallengeRunStatus?>(
+      valueListenable: game.challengeStatusNotifier,
+      builder: (_, status, _) {
+        if (status == null) return const SizedBox.shrink();
+        return _ChallengeEndCard(game: game, status: status);
+      },
+    );
+  }
+}
+
+class _ChallengeEndCard extends StatelessWidget {
+  const _ChallengeEndCard({required this.game, required this.status});
+
+  final BottledStarGame game;
+  final ChallengeRunStatus status;
+
+  bool get _won => status == ChallengeRunStatus.won;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = game.challengeLevel;
+    if (level == null) return const SizedBox.shrink();
+    final shots = game.world.shotCount;
+    final best = ChallengeProgress.instance.bestShots(level.id);
+    final outOfShots = shots >= level.budgetShots;
+    final screenW = MediaQuery.sizeOf(context).width;
+
+    return ColoredBox(
+      color: const Color(0x99050308),
+      child: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: screenW * 0.8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _won ? 'CLEARED' : 'FAILED',
+                    style: GameFonts.endingEyebrow(
+                      color: _won
+                          ? GameColors.chamberGlow
+                          : GameColors.rimWarning,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(level.name, style: GameFonts.endingTitle()),
+                  const SizedBox(height: 24),
+                  if (_won) ...[
+                    _StatLine(label: 'Shots used', value: '$shots'),
+                    const SizedBox(height: 10),
+                    _StatLine(label: 'Par', value: '${level.parShots}'),
+                    if (best != null) ...[
+                      const SizedBox(height: 10),
+                      _StatLine(label: 'Best', value: '$best'),
+                    ],
+                  ] else
+                    Text(
+                      outOfShots
+                          ? 'Out of shots.'
+                          : 'A constraint was broken.',
+                      textAlign: TextAlign.center,
+                      style: GameFonts.prose(
+                        fontSize: 14,
+                        color: GameColors.mutedText,
+                      ),
+                    ),
+                  const SizedBox(height: 36),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: game.restart,
+                      child: const Text('Retry'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Level Select',
+                      style: GameFonts.ui(
+                        fontSize: 15,
+                        weight: FontWeight.w600,
+                        color: GameColors.mutedText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

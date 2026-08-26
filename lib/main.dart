@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'firebase_options.dart';
 import 'game/challenge/level_library.dart';
 import 'game/modes/game_mode.dart';
+import 'game/modes/play_args.dart';
 import 'game/systems/achievement_store.dart';
 import 'game/systems/purchases_controller.dart';
 import 'monetization/ad_gateway.dart';
@@ -14,6 +15,7 @@ import 'theme/game_colors.dart';
 import 'ui/game_screen.dart';
 import 'ui/menu/achievements_screen.dart';
 import 'ui/menu/challenge_iap_preview_screen.dart';
+import 'ui/menu/challenge_level_select_screen.dart';
 import 'ui/menu/credits_screen.dart';
 import 'ui/menu/menu_screen.dart';
 import 'ui/menu/mode_select_screen.dart';
@@ -31,9 +33,7 @@ Future<void> main() async {
   }
   // Debug-only: fail loud on the dev machine if a pack is malformed.
   await LevelLibrary.assertValidInDebug();
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -78,9 +78,16 @@ class BottledStarApp extends StatelessWidget {
         '/mode': (_) => const ModeSelectScreen(),
         '/play': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is PlayArgs) {
+            return GameScreen(
+              mode: args.mode,
+              challengeLevel: args.challengeLevel,
+            );
+          }
           final mode = args is GameMode ? args : GameMode.classic;
           return GameScreen(mode: mode);
         },
+        '/challenge-levels': (_) => const ChallengeLevelSelectScreen(),
         '/scores': (_) => const ScoresScreen(),
         '/achievements': (_) => const AchievementsScreen(),
         '/options': (_) => const OptionsScreen(),
@@ -90,3 +97,14 @@ class BottledStarApp extends StatelessWidget {
     );
   }
 }
+
+/**
+ * St Michael the Archangel, pray for us
+ * Mary, Mother of God, pray for us
+ * St Joseph, terror of demons, pray for us
+ * St Gregory the Great, pray for us
+ * St Carlo Acutis, pray for us
+ * Bl Michael McGivney, pray for us
+ * Georges Lemaître, pray for us
+ * St. Albert the Great, pray for us
+ */

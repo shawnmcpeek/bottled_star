@@ -3,6 +3,343 @@
   "pack": 1,
   "levels": [
     {
+      "id": "p1_01",
+      "name": "Split Duty",
+      "blurb": "Carbon on one side, oxygen on the other. Two heliums, no backup plan — unless you build one.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 60,
+            "radiusFrac": 0.35
+          },
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 240,
+            "radiusFrac": 0.35
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "H", "H", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 },
+        { "type": "produce", "element": "Ne", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p1_02",
+      "name": "No Spare Helium",
+      "blurb": "One neon, one shot at helium. Miss it and you're building your own from scratch — fast.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ne",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 150,
+            "radiusFrac": 0.4
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["He", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 5 },
+
+      "goals": [
+        { "type": "produce", "element": "Mg", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 3 }
+    },
+
+    {
+      "id": "p1_03",
+      "name": "Reagent",
+      "blurb": "One carbon, waiting. Feed it helium.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.3
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 7 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 5 }
+    },
+
+    {
+      "id": "p1_04",
+      "name": "Two Ladders",
+      "blurb": "Grow the oxygen. Don't forget to build your own helium too.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 270,
+            "radiusFrac": 0.35
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 9 },
+
+      "goals": [
+        { "type": "produce", "element": "Ne", "count": 1 },
+        { "type": "produce", "element": "C", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 10 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 7 }
+    },
+
+    {
+      "id": "p1_05",
+      "name": "Caged",
+      "blurb": "A hydrogen, boxed in by four calciums. You can't thread that gap forever — shove the wall wide and get more through.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
+            "element": "Ca",
+            "count": 4,
+            "placement": "ring",
+            "radiusFrac": 0.4,
+            "phaseDeg": 0
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "produce", "element": "He", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p1_06",
+      "name": "Shortcut",
+      "blurb": "Four carbons, two pairs, four hydrogens. That's not enough helium for the long way — not even close.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 2,
+            "placement": "cluster",
+            "radiusFrac": 0.4,
+            "arcDeg": [70, 110]
+          },
+          {
+            "element": "C",
+            "count": 2,
+            "placement": "cluster",
+            "radiusFrac": 0.4,
+            "arcDeg": [250, 290]
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 4 },
+
+      "goals": [
+        { "type": "produce", "element": "Mg", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 10 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 3 }
+    },
+
+    {
+      "id": "p1_07",
+      "name": "No Shortcuts",
+      "blurb": "Same trick, new rule: it's illegal today. Helium is the only way up.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 2,
+            "placement": "cluster",
+            "radiusFrac": 0.4,
+            "arcDeg": [70, 110]
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "noSameTier" }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p1_08",
+      "name": "Narrow Window",
+      "blurb": "The injector only swings through the top. Plan your angle.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 200,
+            "radiusFrac": 0.35
+          }
+        ],
+        "baked": null
+      },
+
+      "injectionArc": { "centerDeg": 90, "widthDeg": 90 },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 8 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 5 }
+    },
+
+    {
       "id": "p1_09",
       "name": "Starved",
       "blurb": "One calcium. No helium given.",
@@ -48,6 +385,478 @@
       "rules": { "remnants": false },
 
       "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p1_10",
+      "name": "Ration",
+      "blurb": "Only two heliums allowed on the board at once. Use them fast.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 180,
+            "radiusFrac": 0.4
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 10 },
+
+      "goals": [
+        { "type": "produce", "element": "Ne", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxOfElement", "element": "He", "value": 2 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 7 }
+    },
+
+    {
+      "id": "p1_11",
+      "name": "Detour",
+      "blurb": "Two carbons, close together. Touch them and it's over. Route around.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 2,
+            "placement": "cluster",
+            "radiusFrac": 0.42,
+            "arcDeg": [70, 110]
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 8 },
+
+      "goals": [
+        { "type": "produce", "element": "O", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "neverProduce", "element": "Mg" }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 6 }
+    },
+
+    {
+      "id": "p1_12",
+      "name": "Remnant Field",
+      "blurb": "Two calciums. Finish them both — and mind what's left after.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ca",
+            "count": 2,
+            "placement": "ring",
+            "radiusFrac": 0.45,
+            "phaseDeg": 0
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "produce", "element": "Fe", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 18 }
+      ],
+
+      "rules": { "remnants": true },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p1_13",
+      "name": "Hold the Line",
+      "blurb": "No goal but staying alive. Fourteen shots. Keep the rim quiet.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 4,
+            "placement": "ring",
+            "radiusFrac": 0.6,
+            "phaseDeg": 0
+          },
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 180,
+            "radiusFrac": 0.55
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 14 },
+
+      "goals": [
+        { "type": "survive", "shots": 14 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 16 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 12 }
+    },
+
+    {
+      "id": "p1_14",
+      "name": "Consolidate",
+      "blurb": "Eight loose nuclei clutter the chamber. Get the count under six.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "C",
+            "count": 4,
+            "placement": "ring",
+            "radiusFrac": 0.45,
+            "phaseDeg": 0
+          },
+          {
+            "element": "O",
+            "count": 4,
+            "placement": "ring",
+            "radiusFrac": 0.6,
+            "phaseDeg": 45
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "boardUnder", "value": 6 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 18 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p1_15",
+      "name": "Full Ladder",
+      "blurb": "One neon. Climb it all the way to argon.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ne",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 45,
+            "radiusFrac": 0.4
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 14 },
+
+      "goals": [
+        { "type": "produce", "element": "Ar", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 10 }
+    },
+
+    {
+      "id": "p1_16",
+      "name": "No Shortcuts, Tight Room",
+      "blurb": "Two neons, no shortcuts, no spare room. Helium only, and don't waste a body.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ne",
+            "count": 2,
+            "placement": "cluster",
+            "radiusFrac": 0.45,
+            "arcDeg": [70, 110]
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "produce", "element": "Ca", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "noSameTier" },
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p1_17",
+      "name": "Threading the Needle",
+      "blurb": "One calcium, one narrow window to fire through. Six shots to close it out.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ca",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 250,
+            "radiusFrac": 0.5
+          }
+        ],
+        "baked": null
+      },
+
+      "injectionArc": { "centerDeg": 70, "widthDeg": 70 },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 6 },
+
+      "goals": [
+        { "type": "produce", "element": "Fe", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 10 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
+    },
+
+    {
+      "id": "p1_18",
+      "name": "Twin Stars",
+      "blurb": "Two calciums. Finish them both. If they meet, that's not a bug.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ca",
+            "count": 2,
+            "placement": "ring",
+            "radiusFrac": 0.5,
+            "phaseDeg": 0
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 12 },
+
+      "goals": [
+        { "type": "produce", "element": "Fe", "count": 2 }
+      ],
+
+      "constraints": [
+        { "type": "maxBodies", "value": 16 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 9 }
+    },
+
+    {
+      "id": "p1_19",
+      "name": "Overpressure",
+      "blurb": "One iron allowed on the board. Get there once, cleanly, and stop.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ca",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.55
+          },
+          {
+            "element": "C",
+            "count": 3,
+            "placement": "ring",
+            "radiusFrac": 0.4,
+            "phaseDeg": 0
+          }
+        ],
+        "baked": null
+      },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 10 },
+
+      "goals": [
+        { "type": "produce", "element": "Fe", "count": 1 }
+      ],
+
+      "constraints": [
+        { "type": "maxOfElement", "element": "Fe", "value": 1 },
+        { "type": "maxBodies", "value": 14 }
+      ],
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 8 }
+    },
+
+    {
+      "id": "p1_20",
+      "name": "Finale",
+      "blurb": "Everything you've learned, one chamber. Get to iron, and leave it clean.",
+
+      "seed": {
+        "bodies": [
+          {
+            "element": "Ca",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 100,
+            "radiusFrac": 0.5
+          },
+          {
+            "element": "O",
+            "count": 2,
+            "placement": "ring",
+            "radiusFrac": 0.35,
+            "phaseDeg": 90
+          },
+          {
+            "element": "C",
+            "count": 2,
+            "placement": "cluster",
+            "radiusFrac": 0.45,
+            "arcDeg": [250, 290]
+          }
+        ],
+        "baked": null
+      },
+
+      "injectionArc": { "centerDeg": 90, "widthDeg": 100 },
+
+      "queue": {
+        "mode": "fixed",
+        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H"],
+        "visibleCount": 3
+      },
+
+      "budget": { "shots": 14 },
+
+      "goals": [
+        { "type": "produce", "element": "Fe", "count": 1 },
+        { "type": "boardUnder", "value": 10 }
+      ],
+
+      "constraints": [
+        { "type": "noSameTier" },
+        { "type": "maxBodies", "value": 18 }
+      ],
+
+      "rules": { "remnants": true },
+
+      "par": { "shots": 10 }
     }
   ]
 }

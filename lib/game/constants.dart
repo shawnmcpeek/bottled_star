@@ -57,6 +57,11 @@ abstract final class GameConstants {
   static const double kSupernovaFlashSeconds = 0.12;
   static const double kSupernovaShakeSeconds = 0.5;
 
+  /// Challenge: seconds of no new shot before goals/budget are evaluated.
+  /// Gives an in-flight nucleus time to travel and merge before a budget
+  /// loss can be called.
+  static const double challengeSettleSeconds = 1.2;
+
   // Ending timings
   static const double endingSkipAfterSeconds = 1.5;
   static const double whiteDwarfHold = 0.8;

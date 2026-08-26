@@ -8,6 +8,12 @@ import 'achievement_defs.dart';
 import 'achievement_store.dart';
 import 'purchases_config.dart';
 
+/// TEMPORARY — internal playtest only (Shawn + daughter). Forces Challenge
+/// unlocked for everyone, skipping the Options toggle and the store
+/// entirely. Flip to `false` when told to "turn it on" before any store
+/// build (TestFlight / Play internal / production).
+const bool kChallengeForceUnlockForTesting = true;
+
 /// RevenueCat wrapper — owned products in, derived entitlements out.
 ///
 /// [Entitlements.noAds] is never persisted. Only the owned product ID set is
@@ -39,7 +45,9 @@ class PurchasesController extends ChangeNotifier {
 
   /// Any challenge pack (including legacy `challenge_unlock` → pack 1).
   bool get hasChallenge =>
-      _debugUnlock || hasAnyChallengePack(_entitlements);
+      kChallengeForceUnlockForTesting ||
+      _debugUnlock ||
+      hasAnyChallengePack(_entitlements);
 
   bool hasPack(String entitlementId) =>
       _debugUnlock || _entitlements.contains(entitlementId);
