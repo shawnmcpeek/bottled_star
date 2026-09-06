@@ -19,9 +19,11 @@ import 'injection_queue.dart';
 import 'injection_source.dart';
 import 'merge_system.dart';
 import 'haptics_controller.dart';
+import 'run_snapshot.dart';
 import 'sfx_controller.dart';
 import 'supernova_blast.dart';
 import 'achievement_hooks.dart';
+import '../challenge/fixed_queue.dart';
 
 typedef ScoreCallback = void Function(int delta, int total);
 typedef GameOverCallback = void Function(RunEnding ending);
@@ -38,6 +40,7 @@ class BottledStarWorld extends Forge2DWorld {
   BottledStarWorld({
     this.mode = GameMode.classic,
     this.challengeLevel,
+    this.skipInitialChallengeSetup = false,
     ScoreCallback? onScore,
     GameOverCallback? onGameOver,
     TierCallback? onTierReached,
@@ -68,6 +71,10 @@ class BottledStarWorld extends Forge2DWorld {
 
   /// Set for Challenge runs. Classic / Collapse leave this null.
   final LevelSpec? challengeLevel;
+
+  /// When true, [onLoad] skips seeding the Challenge board so a saved run
+  /// can be applied instead.
+  final bool skipInitialChallengeSetup;
 
   /// When false, [ElementTier.sameTierMerges] is disabled for this world.
   /// Defaults true; Challenge `noSameTier` flips it for that level only.
@@ -192,7 +199,9 @@ class BottledStarWorld extends Forge2DWorld {
     await add(injector);
     _publishQueue();
 
-    _setupChallenge();
+    if (!skipInitialChallengeSetup) {
+      setupChallenge();
+    }
 
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
@@ -201,7 +210,7 @@ class BottledStarWorld extends Forge2DWorld {
   /// Seed starting nuclei, arm the goal/constraint tracker, and clamp the
   /// injector to `injectionArc` for a Challenge level. No-op otherwise.
   /// Called from [onLoad] and again from [resetRun] (retry re-seeds fresh).
-  void _setupChallenge() {
+  void setupChallenge() {
     final level = challengeLevel;
     if (level == null) return;
 
@@ -291,14 +300,224 @@ class BottledStarWorld extends Forge2DWorld {
       ..orbitAngle = -math.pi / 2
       ..loadedTier = injectionQueue.current;
 
-    _setupChallenge();
+    setupChallenge();
 
     _publishQueue();
   }
 
   void _publishQueue() {
+    if (injectionQueue.isExhausted) {
+      final queue = injectionQueue;
+      if (queue is FixedInjectionQueue && queue.sequence.isNotEmpty) {
+        injector.loadedTier = queue.sequence.last;
+        onQueueChanged(queue.sequence.last, queue.sequence.last);
+      }
+      return;
+    }
     injector.loadedTier = injectionQueue.current;
     onQueueChanged(injectionQueue.current, injectionQueue.next);
+  }
+
+  RunSnapshot captureSnapshot() {
+    final queue = injectionQueue;
+    final queueSnap = switch (queue) {
+      InjectionQueue() => QueueSnapshot.weighted(
+          current: queue.current.tier,
+          next: queue.next.tier,
+          unlockedThrough: queue.unlockedThrough,
+        ),
+      FixedInjectionQueue() => QueueSnapshot.fixed(
+          current: queue.isExhausted
+              ? (queue.sequence.isEmpty ? 0 : queue.sequence.last.tier)
+              : queue.current.tier,
+          next: queue.isExhausted
+              ? (queue.sequence.isEmpty ? 0 : queue.sequence.last.tier)
+              : queue.next.tier,
+          index: queue.index,
+        ),
+      _ => QueueSnapshot.weighted(
+          current: ElementTier.hydrogen.tier,
+          next: ElementTier.hydrogen.tier,
+          unlockedThrough: 0,
+        ),
+    };
+
+    ChallengeTrackerSnapshot? challengeSnap;
+    final tracker = challengeTracker;
+    if (tracker != null) {
+      challengeSnap = ChallengeTrackerSnapshot(
+        produced: {
+          for (final e in tracker.produced.entries) e.key.tier: e.value,
+        },
+        shotsFired: tracker.shotsFired,
+        supernovaCount: tracker.supernovaCount,
+      );
+    }
+
+    return RunSnapshot(
+      mode: mode,
+      levelId: challengeLevel?.id,
+      score: score,
+      highestTier: highestTier,
+      shotCount: shotCount,
+      kilonovaCount: kilonovaCount,
+      supernovaCount: supernovaCount,
+      injectorAngle: injector.orbitAngle,
+      tiersCreated: Set<int>.from(tiersCreatedThisRun),
+      queue: queueSnap,
+      nuclei: [
+        for (final n in nuclei)
+          if (n.isMounted && !n.pendingDestroy)
+            NucleusSnapshot(
+              tier: n.tier.tier,
+              rimPressure: n.rimPressure,
+              body: BodySnapshot(
+                x: n.body.position.x,
+                y: n.body.position.y,
+                vx: n.body.linearVelocity.x,
+                vy: n.body.linearVelocity.y,
+                angle: n.body.angle,
+                angularVelocity: n.body.angularVelocity,
+              ),
+            ),
+      ],
+      remnants: [
+        for (final r in remnantSystem?.remnants ?? const [])
+          if (r.isMounted && !r.pendingDestroy)
+            BodySnapshot(
+              x: r.body.position.x,
+              y: r.body.position.y,
+              vx: r.body.linearVelocity.x,
+              vy: r.body.linearVelocity.y,
+              angle: r.body.angle,
+              angularVelocity: r.body.angularVelocity,
+            ),
+      ],
+      challengeSettleElapsed: _sinceLastChallengeShot,
+      challenge: challengeSnap,
+    );
+  }
+
+  void applySnapshot(RunSnapshot snap) {
+    endingController?.removeFromParent();
+    endingController = null;
+    activeEnding = null;
+
+    gameOver = false;
+    inputEnabled = true;
+    physicsEnabled = true;
+    rimPressureEnabled = true;
+    voluntaryEnd = false;
+    score = snap.score;
+    highestTier = snap.highestTier;
+    shotCount = snap.shotCount;
+    mergeSystem.chainDepth = 0;
+    tiersCreatedThisRun
+      ..clear()
+      ..addAll(snap.tiersCreated);
+    _displayedPressure = 0;
+    _injectorLockout = 0;
+    _runElapsed = 0;
+    _pendingSupernovaA = null;
+    _pendingSupernovaB = null;
+    _postStepOps.clear();
+    _sinceLastChallengeShot = snap.challengeSettleElapsed;
+
+    remnantSystem?.reset();
+    if (remnantSystem != null) {
+      remnantSystem!.kilonovaCount = snap.kilonovaCount;
+      remnantSystem!.supernovaCount = snap.supernovaCount;
+    }
+
+    for (final n in List<Nucleus>.from(nuclei)) {
+      if (n.isMounted) n.removeFromParent();
+    }
+    nuclei.clear();
+
+    children.whereType<SeedParticle>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<RemnantStar>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<ScreenFlash>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<SupernovaBlast>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<EjectStreak>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<KilonovaBurst>().toList().forEach((c) => c.removeFromParent());
+
+    chamber
+      ..displayedPressure = 0
+      ..flare = 0
+      ..broken = false
+      ..breakProgress = 0;
+
+    _restoreQueue(snap.queue);
+
+    injector
+      ..cancelCharge()
+      ..cooldown = 0
+      ..orbitAngle = snap.injectorAngle;
+
+    if (challengeLevel != null) {
+      challengeTracker = ChallengeRunTracker(challengeLevel!);
+      final saved = snap.challenge;
+      if (saved != null) {
+        challengeTracker!.restore(
+          produced: {
+            for (final e in saved.produced.entries)
+              ElementTier.fromTier(e.key): e.value,
+          },
+          shotsFired: saved.shotsFired,
+          supernovaCount: saved.supernovaCount,
+        );
+      }
+      final arc = challengeLevel!.injectionArc;
+      if (arc != null) {
+        final centerDeg =
+            arc.centerDeg > 180 ? arc.centerDeg - 360 : arc.centerDeg;
+        final centerRad = centerDeg * math.pi / 180;
+        final halfWidthRad = (arc.widthDeg / 2) * math.pi / 180;
+        injector
+          ..minOrbitAngle = centerRad - halfWidthRad
+          ..maxOrbitAngle = centerRad + halfWidthRad;
+      }
+    }
+
+    for (final n in snap.nuclei) {
+      spawnNucleus(
+        tier: ElementTier.fromTier(n.tier),
+        position: Vector2(n.body.x, n.body.y),
+        velocity: Vector2(n.body.vx, n.body.vy),
+        angle: n.body.angle,
+        angularVelocity: n.body.angularVelocity,
+        rimPressure: n.rimPressure,
+        countsAsChallengeProduced: false,
+      );
+    }
+
+    for (final r in snap.remnants) {
+      remnantSystem?.restoreBody(
+        position: Vector2(r.x, r.y),
+        velocity: Vector2(r.vx, r.vy),
+        angle: r.angle,
+        angularVelocity: r.angularVelocity,
+      );
+    }
+
+    _publishQueue();
+    mergeSystem.scanTouchingPairs();
+    mergeSystem.resolve();
+  }
+
+  void _restoreQueue(QueueSnapshot snap) {
+    final queue = injectionQueue;
+    if (queue is InjectionQueue && snap.kind == QueueKind.weighted) {
+      queue.restore(
+        current: ElementTier.fromTier(snap.current),
+        next: ElementTier.fromTier(snap.next),
+        unlockedThrough: snap.unlockedThrough,
+      );
+      return;
+    }
+    if (queue is FixedInjectionQueue && snap.kind == QueueKind.fixed) {
+      queue.restoreAt(snap.index);
+    }
   }
 
   Nucleus spawnNucleus({
@@ -307,6 +526,9 @@ class BottledStarWorld extends Forge2DWorld {
     bool freshFromMerge = false,
     bool asProjectile = false,
     Vector2? velocity,
+    double angle = 0,
+    double angularVelocity = 0,
+    double rimPressure = 0,
     bool countsAsChallengeProduced = true,
   }) {
     late Nucleus nucleus;
@@ -316,8 +538,11 @@ class BottledStarWorld extends Forge2DWorld {
       freshFromMerge: freshFromMerge,
       asProjectile: asProjectile,
       initialVelocity: velocity,
+      initialAngle: angle,
+      initialAngularVelocity: angularVelocity,
       onMergeRequest: (a, b) => mergeSystem.request(a, b),
     );
+    nucleus.rimPressure = rimPressure;
     nuclei.add(nucleus);
     add(nucleus);
     _noteTierCreated(tier);

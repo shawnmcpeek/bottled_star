@@ -33,7 +33,12 @@ Future<void> main() async {
   }
   // Debug-only: fail loud on the dev machine if a pack is malformed.
   await LevelLibrary.assertValidInDebug();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -82,6 +87,7 @@ class BottledStarApp extends StatelessWidget {
             return GameScreen(
               mode: args.mode,
               challengeLevel: args.challengeLevel,
+              resumeSavedRun: args.resumeSavedRun,
             );
           }
           final mode = args is GameMode ? args : GameMode.classic;

@@ -6,7 +6,7 @@
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="portrait"
+            android:screenOrientation="fullUser"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""

@@ -433,6 +433,21 @@ void main() {
       expect(q.current, ElementTier.helium);
       expect(q.isExhausted, isFalse);
     });
+
+    test('restoreAt resumes mid-sequence', () {
+      final q = FixedInjectionQueue(
+        sequence: [
+          ElementTier.hydrogen,
+          ElementTier.helium,
+          ElementTier.carbon,
+        ],
+      );
+      q.restoreAt(2);
+      expect(q.index, 2);
+      expect(q.current, ElementTier.carbon);
+      expect(q.consume(), ElementTier.carbon);
+      expect(q.isExhausted, isTrue);
+    });
   });
 
   group('ChallengeRunTracker goals and constraints', () {

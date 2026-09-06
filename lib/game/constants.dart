@@ -57,6 +57,10 @@ abstract final class GameConstants {
   static const double kSupernovaFlashSeconds = 0.12;
   static const double kSupernovaShakeSeconds = 0.5;
 
+  /// World extent the camera must fit: chamber + injector orbit + body/aim.
+  static const double cameraWorldExtent =
+      (chamberRadius + injectorOrbitGap + 40) * 2;
+
   /// Challenge: seconds of no new shot before goals/budget are evaluated.
   /// Gives an in-flight nucleus time to travel and merge before a budget
   /// loss can be called.

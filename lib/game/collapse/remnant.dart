@@ -13,12 +13,19 @@ class Remnant extends BodyComponent with ContactCallbacks {
   Remnant({
     required this.gameWorld,
     required Vector2 spawnPosition,
+    Vector2? initialVelocity,
+    this.initialAngle = 0,
+    this.initialAngularVelocity = 0,
   })  : _spawnPosition = spawnPosition.clone(),
+        _initialVelocity = initialVelocity?.clone(),
         // Above heavy nuclei, below light ones — wedged C/H stay readable.
         super(renderBody: false, priority: 95);
 
   final BottledStarWorld gameWorld;
   final Vector2 _spawnPosition;
+  final Vector2? _initialVelocity;
+  final double initialAngle;
+  final double initialAngularVelocity;
 
   bool pendingDestroy = false;
 
@@ -29,10 +36,13 @@ class Remnant extends BodyComponent with ContactCallbacks {
     final bodyDef = BodyDef(
       type: BodyType.dynamic,
       position: _spawnPosition,
+      angle: initialAngle,
       userData: this,
       bullet: true,
       linearDamping: 0.55,
       angularDamping: 0.8,
+      linearVelocity: _initialVelocity ?? Vector2.zero(),
+      angularVelocity: initialAngularVelocity,
     );
     final fixtureDef = FixtureDef(
       shape,

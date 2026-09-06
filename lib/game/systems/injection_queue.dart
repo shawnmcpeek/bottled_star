@@ -40,6 +40,17 @@ class InjectionQueue implements InjectionSource {
     }
   }
 
+  void restore({
+    required ElementTier current,
+    required ElementTier next,
+    required int unlockedThrough,
+  }) {
+    this.current = current;
+    this.next = next;
+    this.unlockedThrough =
+        unlockedThrough.clamp(0, GameConstants.maxInjectTier);
+  }
+
   @override
   ElementTier consume() {
     final fired = current;

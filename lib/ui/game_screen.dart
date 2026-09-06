@@ -32,12 +32,15 @@ class GameScreen extends StatefulWidget {
     super.key,
     this.mode = GameMode.classic,
     this.challengeLevel,
+    this.resumeSavedRun = false,
   });
 
   final GameMode mode;
 
   /// Set when [mode] is [GameMode.challenge]; null otherwise.
   final LevelSpec? challengeLevel;
+
+  final bool resumeSavedRun;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -61,6 +64,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       scoreStore: _scoreStore,
       mode: widget.mode,
       challengeLevel: widget.challengeLevel,
+      resumeSavedRun: widget.resumeSavedRun,
     );
     _game.gameOverNotifier.addListener(_onGameOverChanged);
     _game.challengeStatusNotifier.addListener(_onChallengeStatusChanged);
@@ -81,7 +85,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       mode: widget.mode,
     );
     if (!mounted) return;
-    if (!_settings.howToPlaySeen) {
+    if (!widget.resumeSavedRun && !_settings.howToPlaySeen) {
       final guide = FirstRunGuide(onCompleted: _finishGuide);
       _game.firstRunGuide = guide;
       setState(() {
@@ -103,8 +107,15 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
         music.pause();
+        if (!_game.gameOverNotifier.value && !_showGuide) {
+          _game.pauseEngine();
+          _game.persistRun();
+        }
       case AppLifecycleState.resumed:
         music.resume(enabled: _settings.soundEnabled);
+        if (!_game.gameOverNotifier.value && !_showGuide) {
+          _game.resumeEngine();
+        }
     }
   }
 
@@ -152,6 +163,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _game.challengeStatusNotifier.removeListener(_onChallengeStatusChanged);
     _game.firstRunGuide = null;
     _guide?.dispose();
+    if (!_game.gameOverNotifier.value && !_showGuide) {
+      _game.persistRun();
+    }
     _game.pauseEngine();
     super.dispose();
   }
@@ -234,6 +248,67 @@ class HudOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final challenge = game.mode == GameMode.challenge;
+    final leave = hideLeave
+        ? const SizedBox.shrink()
+        : LeaveRunButton(game: game);
+
+    if (landscape) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SafeArea(
+              right: false,
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                child: IgnorePointer(
+                  child: challenge
+                      ? _ChallengeGoalPanel(game: game)
+                      : _HudScoreBlock(game: game),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: SafeArea(
+              left: false,
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 12, 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IgnorePointer(
+                      child: challenge
+                          ? _ChallengeParPanel(game: game)
+                          : _HudBestBlock(game: game),
+                    ),
+                    const SizedBox(width: 4),
+                    leave,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _HudBottom(game: game, compact: true),
+          ),
+        ],
+      );
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -247,7 +322,7 @@ class HudOverlay extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: game.mode == GameMode.challenge
+                children: challenge
                     ? [
                         Expanded(
                           child: IgnorePointer(
@@ -256,107 +331,17 @@ class HudOverlay extends StatelessWidget {
                         ),
                         IgnorePointer(child: _ChallengeParPanel(game: game)),
                         const SizedBox(width: 4),
-                        if (!hideLeave) LeaveRunButton(game: game),
+                        leave,
                       ]
                     : [
                         Expanded(
                           child: IgnorePointer(
-                            child: ValueListenableBuilder<int>(
-                              valueListenable: game.scoreNotifier,
-                              builder: (_, score, _) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('SCORE', style: GameFonts.label()),
-                                    Text(
-                                      '$score',
-                                      style: GameFonts.score(
-                                        weight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    if (game.mode == GameMode.collapse) ...[
-                                      const SizedBox(height: 10),
-                                      ValueListenableBuilder<int>(
-                                        valueListenable:
-                                            game.kilonovaCountNotifier,
-                                        builder: (_, kilos, _) {
-                                          return Text(
-                                            'KILONOVAS  $kilos',
-                                            style: GameFonts.label(
-                                              fontSize: 12,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(height: 4),
-                                      ValueListenableBuilder<int>(
-                                        valueListenable:
-                                            game.shotCountNotifier,
-                                        builder: (_, shots, _) {
-                                          return Text(
-                                            'SHOTS  $shots',
-                                            style: GameFonts.label(
-                                              fontSize: 12,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ],
-                                );
-                              },
-                            ),
+                            child: _HudScoreBlock(game: game),
                           ),
                         ),
-                        IgnorePointer(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text('BEST', style: GameFonts.label()),
-                              if (game.mode == GameMode.collapse)
-                                ValueListenableBuilder<String>(
-                                  valueListenable: game.collapseBestNotifier,
-                                  builder: (_, best, _) {
-                                    return Text(
-                                      best.isEmpty ? '—' : best,
-                                      textAlign: TextAlign.right,
-                                      style: GameFonts.ui(
-                                        fontSize: 14,
-                                        weight: FontWeight.w500,
-                                        color: GameColors.rimMetal,
-                                      ),
-                                    );
-                                  },
-                                )
-                              else
-                                ValueListenableBuilder<int>(
-                                  valueListenable: game.highScoreNotifier,
-                                  builder: (_, best, _) {
-                                    return Text(
-                                      '$best',
-                                      style: GameFonts.score(
-                                        fontSize: 22,
-                                        weight: FontWeight.w500,
-                                        color: GameColors.rimMetal,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              const SizedBox(height: 6),
-                              ValueListenableBuilder<String>(
-                                valueListenable: game.bestElementNotifier,
-                                builder: (_, symbol, _) {
-                                  return Text(
-                                    'PEAK  $symbol',
-                                    style: GameFonts.label(fontSize: 12),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
+                        IgnorePointer(child: _HudBestBlock(game: game)),
                         const SizedBox(width: 4),
-                        if (!hideLeave) LeaveRunButton(game: game),
+                        leave,
                       ],
               ),
             ),
@@ -366,55 +351,170 @@ class HudOverlay extends StatelessWidget {
           left: 0,
           right: 0,
           bottom: 0,
-          child: IgnorePointer(
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ValueListenableBuilder<ElementTier?>(
-                      valueListenable: game.lastUnlockNotifier,
-                      builder: (_, tier, _) {
-                        if (tier == null ||
-                            tier.tier < ElementTier.carbon.tier) {
-                          return const SizedBox.shrink();
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Text(
-                            '${tier.symbol}  ·  ${tier.displayName}',
-                            style: GameFonts.ui(
-                              fontSize: 14,
-                              weight: FontWeight.w600,
-                              color: GameColors.chamberGlow.withValues(
-                                alpha: 0.85,
-                              ),
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    ShotPreviewRow(game: game),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Drag to aim  ·  Hold to charge  ·  Release to inject',
-                      textAlign: TextAlign.center,
-                      style: GameFonts.ui(
-                        fontSize: 12,
-                        weight: FontWeight.w500,
-                        color: GameColors.mutedText.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          child: _HudBottom(game: game, compact: false),
         ),
       ],
+    );
+  }
+}
+
+class _HudScoreBlock extends StatelessWidget {
+  const _HudScoreBlock({required this.game});
+
+  final BottledStarGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: game.scoreNotifier,
+      builder: (_, score, _) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('SCORE', style: GameFonts.label()),
+            Text(
+              '$score',
+              style: GameFonts.score(weight: FontWeight.w500),
+            ),
+            if (game.mode == GameMode.collapse) ...[
+              const SizedBox(height: 10),
+              ValueListenableBuilder<int>(
+                valueListenable: game.kilonovaCountNotifier,
+                builder: (_, kilos, _) {
+                  return Text(
+                    'KILONOVAS  $kilos',
+                    style: GameFonts.label(fontSize: 12),
+                  );
+                },
+              ),
+              const SizedBox(height: 4),
+              ValueListenableBuilder<int>(
+                valueListenable: game.shotCountNotifier,
+                builder: (_, shots, _) {
+                  return Text(
+                    'SHOTS  $shots',
+                    style: GameFonts.label(fontSize: 12),
+                  );
+                },
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _HudBestBlock extends StatelessWidget {
+  const _HudBestBlock({required this.game});
+
+  final BottledStarGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('BEST', style: GameFonts.label()),
+        if (game.mode == GameMode.collapse)
+          ValueListenableBuilder<String>(
+            valueListenable: game.collapseBestNotifier,
+            builder: (_, best, _) {
+              return Text(
+                best.isEmpty ? '—' : best,
+                textAlign: TextAlign.right,
+                style: GameFonts.ui(
+                  fontSize: 14,
+                  weight: FontWeight.w500,
+                  color: GameColors.rimMetal,
+                ),
+              );
+            },
+          )
+        else
+          ValueListenableBuilder<int>(
+            valueListenable: game.highScoreNotifier,
+            builder: (_, best, _) {
+              return Text(
+                '$best',
+                style: GameFonts.score(
+                  fontSize: 22,
+                  weight: FontWeight.w500,
+                  color: GameColors.rimMetal,
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: 6),
+        ValueListenableBuilder<String>(
+          valueListenable: game.bestElementNotifier,
+          builder: (_, symbol, _) {
+            return Text(
+              'PEAK  $symbol',
+              style: GameFonts.label(fontSize: 12),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _HudBottom extends StatelessWidget {
+  const _HudBottom({required this.game, required this.compact});
+
+  final BottledStarGame game;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 0, 20, compact ? 8 : 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ValueListenableBuilder<ElementTier?>(
+                valueListenable: game.lastUnlockNotifier,
+                builder: (_, tier, _) {
+                  if (tier == null || tier.tier < ElementTier.carbon.tier) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      '${tier.symbol}  ·  ${tier.displayName}',
+                      style: GameFonts.ui(
+                        fontSize: 14,
+                        weight: FontWeight.w600,
+                        color: GameColors.chamberGlow.withValues(alpha: 0.85),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ShotPreviewRow(game: game),
+              if (!compact) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Drag to aim  ·  Hold to charge  ·  Release to inject',
+                  textAlign: TextAlign.center,
+                  style: GameFonts.ui(
+                    fontSize: 12,
+                    weight: FontWeight.w500,
+                    color: GameColors.mutedText.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

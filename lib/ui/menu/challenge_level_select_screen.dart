@@ -5,8 +5,10 @@ import '../../game/challenge/level_library.dart';
 import '../../game/challenge/level_spec.dart';
 import '../../game/modes/game_mode.dart';
 import '../../game/modes/play_args.dart';
+import '../../game/systems/run_save_store.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
+import 'continue_run_dialog.dart';
 import 'menu_page_scaffold.dart';
 
 /// Level picker for Challenge. Levels unlock in play order — clearing one
@@ -39,9 +41,29 @@ class _ChallengeLevelSelectScreenState
   }
 
   Future<void> _open(LevelSpec level) async {
+    var resume = false;
+    if (await RunSaveStore.hasSaved(
+      mode: GameMode.challenge,
+      levelId: level.id,
+    )) {
+      if (!mounted) return;
+      resume = await promptContinueRun(context);
+      if (!mounted) return;
+      if (!resume) {
+        await RunSaveStore.clear(
+          mode: GameMode.challenge,
+          levelId: level.id,
+        );
+      }
+    }
+    if (!mounted) return;
     await Navigator.of(context).pushNamed(
       '/play',
-      arguments: PlayArgs(mode: GameMode.challenge, challengeLevel: level),
+      arguments: PlayArgs(
+        mode: GameMode.challenge,
+        challengeLevel: level,
+        resumeSavedRun: resume,
+      ),
     );
   }
 

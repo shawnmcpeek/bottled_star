@@ -57,6 +57,7 @@ class LeaveRunButton extends StatelessWidget {
     );
 
     if (leave == true) {
+      await game.abandonSavedRun();
       if (context.mounted) Navigator.of(context).pop();
       return;
     }

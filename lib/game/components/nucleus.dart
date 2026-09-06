@@ -24,6 +24,8 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     this.freshFromMerge = false,
     this.asProjectile = false,
     Vector2? initialVelocity,
+    this.initialAngle = 0,
+    this.initialAngularVelocity = 0,
   })  : _spawnPosition = spawnPosition.clone(),
         _initialVelocity = initialVelocity?.clone(),
         // Smaller tiers paint above larger ones so wedged lights stay readable.
@@ -32,6 +34,8 @@ class Nucleus extends BodyComponent with ContactCallbacks {
   ElementTier tier;
   final Vector2 _spawnPosition;
   final Vector2? _initialVelocity;
+  final double initialAngle;
+  final double initialAngularVelocity;
   final MergeRequest onMergeRequest;
   final bool freshFromMerge;
   final bool asProjectile;
@@ -66,11 +70,13 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     final bodyDef = BodyDef(
       type: BodyType.dynamic,
       position: _spawnPosition,
+      angle: initialAngle,
       userData: this,
       linearDamping: GameConstants.linearDamping,
       angularDamping: GameConstants.angularDamping,
       bullet: asProjectile,
       linearVelocity: _initialVelocity ?? Vector2.zero(),
+      angularVelocity: initialAngularVelocity,
     );
     final fixtureDef = FixtureDef(
       shape,

@@ -38,6 +38,10 @@ class ScoreStore {
     return 'Kilonovas $bestKilonovas · $bestShots shots';
   }
 
+  /// HUD best: the better of the saved record and the score of this run.
+  int displayedHighScore(int currentScore) =>
+      currentScore > highScore ? currentScore : highScore;
+
   static int compareCollapse({
     required int aKilonovas,
     required int aShots,

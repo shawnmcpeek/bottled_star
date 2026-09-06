@@ -7,8 +7,15 @@ import 'game_mode.dart';
 /// [GameMode]; Challenge pushes this to carry the chosen [LevelSpec] too.
 @immutable
 class PlayArgs {
-  const PlayArgs({required this.mode, this.challengeLevel});
+  const PlayArgs({
+    required this.mode,
+    this.challengeLevel,
+    this.resumeSavedRun = false,
+  });
 
   final GameMode mode;
   final LevelSpec? challengeLevel;
+
+  /// Load the locally saved in-progress run for this mode / level.
+  final bool resumeSavedRun;
 }

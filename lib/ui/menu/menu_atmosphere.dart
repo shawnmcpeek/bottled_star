@@ -7,6 +7,37 @@ import 'package:flutter/services.dart';
 
 import '../../theme/game_colors.dart';
 
+/// Shared bottled-star placement so menu chrome can sit on the same core
+/// the backdrop paints.
+class MenuStarGeometry {
+  const MenuStarGeometry({
+    required this.center,
+    required this.rimRadius,
+    required this.coreRadius,
+  });
+
+  static const double centerXFraction = 0.5;
+  static const double centerYFraction = 0.42;
+  static const double rimRadiusFraction = 0.28;
+  static const double coreRadiusFraction = 0.38;
+
+  final Offset center;
+  final double rimRadius;
+  final double coreRadius;
+
+  factory MenuStarGeometry.of(Size size) {
+    final minSide = math.min(size.width, size.height);
+    return MenuStarGeometry(
+      center: Offset(
+        size.width * centerXFraction,
+        size.height * centerYFraction,
+      ),
+      rimRadius: minSide * rimRadiusFraction,
+      coreRadius: minSide * coreRadiusFraction,
+    );
+  }
+}
+
 /// Which nuclei may drift across the menu atmosphere.
 enum MenuDriftCast {
   /// Normal ladder colors (main menu, options, etc.).
@@ -143,7 +174,8 @@ class _MenuAtmospherePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final t = (elapsedSeconds % _loopSeconds) / _loopSeconds;
-    final center = Offset(size.width * 0.5, size.height * 0.42);
+    final geo = MenuStarGeometry.of(size);
+    final center = geo.center;
     final minSide = math.min(size.width, size.height);
 
     final bg = Paint()
@@ -184,7 +216,7 @@ class _MenuAtmospherePainter extends CustomPainter {
     }
 
     final pulse = 0.92 + 0.08 * math.sin(t * math.pi * 2);
-    final coreR = minSide * 0.38 * pulse;
+    final coreR = geo.coreRadius * pulse;
     final core = Paint()
       ..shader = RadialGradient(
         colors: [
@@ -198,7 +230,7 @@ class _MenuAtmospherePainter extends CustomPainter {
     canvas.drawCircle(center, coreR, core);
 
     final rimPulse = 0.55 + 0.2 * math.sin(t * math.pi * 2 + 0.8);
-    final rimR = minSide * 0.28;
+    final rimR = geo.rimRadius;
     final glow = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5

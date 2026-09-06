@@ -36,9 +36,36 @@ class RemnantSystem {
   void spawnAt(Vector2 fusionPoint) {
     Kilonova.assertThreshold(gameWorld.mode);
     supernovaCount++;
+    _addRemnant(fusionPoint);
+  }
+
+  /// Replay a remnant from a saved run without bumping counts.
+  void restoreBody({
+    required Vector2 position,
+    Vector2? velocity,
+    double angle = 0,
+    double angularVelocity = 0,
+  }) {
+    _addRemnant(
+      position,
+      velocity: velocity,
+      angle: angle,
+      angularVelocity: angularVelocity,
+    );
+  }
+
+  void _addRemnant(
+    Vector2 position, {
+    Vector2? velocity,
+    double angle = 0,
+    double angularVelocity = 0,
+  }) {
     final remnant = Remnant(
       gameWorld: gameWorld,
-      spawnPosition: fusionPoint,
+      spawnPosition: position,
+      initialVelocity: velocity,
+      initialAngle: angle,
+      initialAngularVelocity: angularVelocity,
     );
     remnants.add(remnant);
     gameWorld.add(remnant);

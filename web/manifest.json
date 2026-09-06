@@ -6,7 +6,7 @@
     "background_color": "#000000",
     "theme_color": "#0B0710",
     "description": "Bottled Star — a fusion drop-and-merge physics game.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

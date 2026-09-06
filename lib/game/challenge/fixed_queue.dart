@@ -23,6 +23,12 @@ class FixedInjectionQueue implements InjectionSource {
 
   int _index = 0;
 
+  int get index => _index;
+
+  void restoreAt(int index) {
+    _index = index.clamp(0, sequence.length);
+  }
+
   @override
   ElementTier get current {
     if (isExhausted) {

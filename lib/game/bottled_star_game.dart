@@ -16,6 +16,7 @@ import 'modes/game_mode.dart';
 import 'systems/achievement_hooks.dart';
 import 'systems/bottled_star_world.dart';
 import 'systems/first_run_guide.dart';
+import 'systems/run_save_store.dart';
 import 'systems/score_store.dart';
 
 class BottledStarGame extends Forge2DGame<BottledStarWorld>
@@ -24,8 +25,13 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     required this.scoreStore,
     this.mode = GameMode.classic,
     this.challengeLevel,
+    this.resumeSavedRun = false,
   }) : super(
-          world: BottledStarWorld(mode: mode, challengeLevel: challengeLevel),
+          world: BottledStarWorld(
+            mode: mode,
+            challengeLevel: challengeLevel,
+            skipInitialChallengeSetup: resumeSavedRun,
+          ),
           gravity: Vector2.zero(),
           zoom: 1,
         ) {
@@ -48,6 +54,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
 
   /// Set for Challenge runs; null for Classic / Collapse.
   final LevelSpec? challengeLevel;
+  final bool resumeSavedRun;
   FirstRunGuide? firstRunGuide;
 
   final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
@@ -80,6 +87,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   double _shakeIntensity = 0;
   Vector2 _cameraBase = Vector2.zero();
   double _flashTime = 0;
+  bool _leftRun = false;
 
   @override
   Future<void> onLoad() async {
@@ -91,6 +99,19 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
         ? ElementTier.fromTier(scoreStore.highestTier).symbol
         : '—';
     collapseBestNotifier.value = scoreStore.collapseBestLabel;
+
+    if (resumeSavedRun) {
+      final snap = await RunSaveStore.load(
+        mode: mode,
+        levelId: challengeLevel?.id,
+      );
+      if (snap != null) {
+        world.applySnapshot(snap);
+        _syncHudFromWorld();
+      } else if (challengeLevel != null) {
+        world.setupChallenge();
+      }
+    }
 
     camera.viewfinder.anchor = Anchor.center;
     camera.viewfinder.position = Vector2.zero();
@@ -107,14 +128,72 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   void _fitCamera() {
     final view = camera.viewport.size;
     if (view.x <= 0 || view.y <= 0) return;
-    final needed = GameConstants.chamberRadius * 2.55;
+    final needed = GameConstants.cameraWorldExtent;
     final zoom = math.min(view.x, view.y) / needed;
     camera.viewfinder.zoom = zoom;
+  }
+
+  void _syncHudFromWorld() {
+    scoreNotifier.value = world.score;
+    shotCountNotifier.value = world.shotCount;
+    kilonovaCountNotifier.value = world.kilonovaCount;
+    peakTierNotifier.value = world.highestTier;
+    final peak = math.max(world.highestTier, scoreStore.highestTier);
+    bestElementNotifier.value =
+        peak > 0 ? ElementTier.fromTier(peak).symbol : '—';
+    if (world.highestTier > 0) {
+      lastUnlockNotifier.value = ElementTier.fromTier(world.highestTier);
+    }
+    _refreshLiveBest();
+  }
+
+  void _refreshLiveBest() {
+    if (mode == GameMode.challenge) return;
+    if (mode == GameMode.collapse) {
+      final currentBetter = !scoreStore.hasCollapseBest ||
+          ScoreStore.compareCollapse(
+                aKilonovas: world.kilonovaCount,
+                aShots: world.shotCount,
+                bKilonovas: scoreStore.bestKilonovas,
+                bShots: scoreStore.bestShots,
+              ) <
+              0;
+      if (currentBetter &&
+          (world.shotCount > 0 ||
+              world.kilonovaCount > 0 ||
+              scoreStore.hasCollapseBest)) {
+        collapseBestNotifier.value =
+            'Kilonovas ${world.kilonovaCount} · ${world.shotCount} shots';
+      } else {
+        collapseBestNotifier.value = scoreStore.collapseBestLabel;
+      }
+      return;
+    }
+    highScoreNotifier.value =
+        scoreStore.displayedHighScore(scoreNotifier.value);
+  }
+
+  Future<void> persistRun() async {
+    if (_leftRun) return;
+    if (world.gameOver) {
+      await RunSaveStore.clear(mode: mode, levelId: challengeLevel?.id);
+      return;
+    }
+    final snap = world.captureSnapshot();
+    if (!snap.isWorthSaving) return;
+    await RunSaveStore.save(snap);
+  }
+
+  Future<void> abandonSavedRun() async {
+    _leftRun = true;
+    await RunSaveStore.clear(mode: mode, levelId: challengeLevel?.id);
   }
 
   void _handleScore(int delta, int total) {
     scoreNotifier.value = total;
     kilonovaCountNotifier.value = world.kilonovaCount;
+    _refreshLiveBest();
+    persistRun();
   }
 
   void _handleTier(ElementTier tier) {
@@ -129,6 +208,8 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   void _handleShotFired() {
     shotCountNotifier.value = world.shotCount;
     firstRunGuide?.onShotFired();
+    _refreshLiveBest();
+    persistRun();
   }
 
   void _handleMerge() {
@@ -175,6 +256,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       bestElementNotifier.value =
           ElementTier.fromTier(scoreStore.highestTier).symbol;
     }
+    await RunSaveStore.clear(mode: mode, levelId: challengeLevel?.id);
   }
 
   void _handleEndingCard(RunEnding ending) {
@@ -194,6 +276,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
         );
       }
     }
+    await RunSaveStore.clear(mode: mode, levelId: challengeLevel?.id);
   }
 
   void _handleFlash(double seconds) {
@@ -220,6 +303,8 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     shotCountNotifier.value = 0;
     kilonovaCountNotifier.value = 0;
     challengeStatusNotifier.value = null;
+    highScoreNotifier.value = scoreStore.highScore;
+    collapseBestNotifier.value = scoreStore.collapseBestLabel;
     camera.viewfinder.position = _cameraBase.clone();
   }
 

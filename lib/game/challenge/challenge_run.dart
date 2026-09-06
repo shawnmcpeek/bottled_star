@@ -85,6 +85,19 @@ class ChallengeRunTracker {
     }
   }
 
+  void restore({
+    required Map<ElementTier, int> produced,
+    required int shotsFired,
+    required int supernovaCount,
+  }) {
+    this.produced
+      ..clear()
+      ..addAll(produced);
+    this.shotsFired = shotsFired;
+    this.supernovaCount = supernovaCount;
+    status = ChallengeRunStatus.playing;
+  }
+
   void onShotFired() {
     if (status != ChallengeRunStatus.playing) return;
     shotsFired++;

@@ -3,16 +3,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../game/modes/game_mode.dart';
+import '../../game/modes/play_args.dart';
 import '../../game/systems/haptics_controller.dart';
 import '../../game/systems/music_controller.dart';
 import '../../game/systems/purchases_controller.dart';
+import '../../game/systems/run_save_store.dart';
 import '../../game/systems/score_store.dart';
 import '../../game/systems/settings_store.dart';
 import '../../game/systems/sfx_controller.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
 import 'challenge_unlock_sheet.dart';
+import 'continue_run_dialog.dart';
 import 'menu_page_scaffold.dart';
+import 'star_anchored_scroller.dart';
 
 class ModeSelectScreen extends StatefulWidget {
   const ModeSelectScreen({super.key});
@@ -82,7 +86,22 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
       ),
     );
     if (!mounted) return;
-    await Navigator.of(context).pushNamed('/play', arguments: mode);
+
+    var resume = false;
+    if (await RunSaveStore.hasSaved(mode: mode)) {
+      if (!mounted) return;
+      resume = await promptContinueRun(context);
+      if (!mounted) return;
+      if (!resume) {
+        await RunSaveStore.clear(mode: mode);
+      }
+    }
+
+    if (!mounted) return;
+    await Navigator.of(context).pushNamed(
+      '/play',
+      arguments: PlayArgs(mode: mode, resumeSavedRun: resume),
+    );
     await MusicController.instance.stop();
     await SfxController.instance.stopAll();
     await _load();
@@ -94,55 +113,48 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
 
     return MenuPageScaffold(
       title: 'Play',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Choose a mode',
-                        textAlign: TextAlign.center,
-                        style: GameFonts.prose(
-                          fontSize: 16,
-                          color: GameColors.mutedText,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      _ModeCard(
-                        mode: GameMode.classic,
-                        bestLabel: _ready && _classicScores.highScore > 0
-                            ? 'Best  ${_classicScores.highScore}'
-                            : null,
-                        onTap: () => _open(GameMode.classic),
-                      ),
-                      const SizedBox(height: 18),
-                      _ModeCard(
-                        mode: GameMode.collapse,
-                        bestLabel: _ready && _collapseScores.hasCollapseBest
-                            ? 'Best  ${_collapseScores.collapseBestLabel}'
-                            : null,
-                        onTap: () => _open(GameMode.collapse),
-                      ),
-                      const SizedBox(height: 18),
-                      _ModeCard(
-                        mode: GameMode.challenge,
-                        badge: hasChallenge ? null : 'Unlock',
-                        onTap: () => _open(GameMode.challenge),
-                      ),
-                    ],
+      pinToStar: true,
+      child: StarAnchoredScroller(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Choose a mode',
+                  textAlign: TextAlign.center,
+                  style: GameFonts.prose(
+                    fontSize: 16,
+                    color: GameColors.mutedText,
                   ),
                 ),
-              ),
+                const SizedBox(height: 28),
+                _ModeCard(
+                  mode: GameMode.classic,
+                  bestLabel: _ready && _classicScores.highScore > 0
+                      ? 'Best  ${_classicScores.highScore}'
+                      : null,
+                  onTap: () => _open(GameMode.classic),
+                ),
+                const SizedBox(height: 18),
+                _ModeCard(
+                  mode: GameMode.collapse,
+                  bestLabel: _ready && _collapseScores.hasCollapseBest
+                      ? 'Best  ${_collapseScores.collapseBestLabel}'
+                      : null,
+                  onTap: () => _open(GameMode.collapse),
+                ),
+                const SizedBox(height: 18),
+                _ModeCard(
+                  mode: GameMode.challenge,
+                  badge: hasChallenge ? null : 'Unlock',
+                  onTap: () => _open(GameMode.challenge),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
