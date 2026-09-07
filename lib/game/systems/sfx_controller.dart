@@ -1,30 +1,21 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import '../element_tier.dart';
+import '../modes/game_mode.dart';
 
-/// One-shot SFX: pentatonic guitar plucks on merge, spring hit on Fe+Fe / kilonova.
+/// One-shot SFX: per-mode guitar plucks on merge, spring hit on Fe+Fe / kilonova.
 ///
-/// Players are pooled and warmed at menu time. Playback uses [play] with a
-/// cached [AssetSource] — AAC `.m4a` so iOS AVPlayer can decode them (Ogg
-/// Vorbis is not supported on Darwin).
-/// Android still opts into [PlayerMode.lowLatency] where SoundPool helps.
+/// Each ladder rung is a baked AAC `.m4a` (iOS AVPlayer ignores pitch on
+/// `playbackRate`). Classic = harmonic minor, Collapse = diminished,
+/// Challenge = augmented. Android still uses [PlayerMode.lowLatency].
 class SfxController {
   SfxController._();
   static final SfxController instance = SfxController._();
 
-  static const _guitarAsset = 'sfx/guitar_string.m4a';
   static const _springAsset = 'sfx/spring_metal.m4a';
-
-  /// Minor-pentatonic climb H→Fe across one octave (rates stay in 0.5→1.0).
-  /// Below ~0.5 many backends ignore playbackRate and play at 1.0 — which made
-  /// early merges (He) sound higher than later ones.
-  static const List<int> _semitones = [
-    0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24,
-  ];
 
   static const int _pluckPoolSize = 4;
 
@@ -41,6 +32,29 @@ class SfxController {
 
   static bool get _preferLowLatency =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  static String pluckFolderFor(GameMode mode) => switch (mode) {
+    GameMode.classic => 'harmonic_minor',
+    GameMode.collapse => 'diminished',
+    GameMode.challenge => 'augmented',
+  };
+
+  static String pluckAssetFor({
+    required GameMode mode,
+    required ElementTier tier,
+  }) {
+    final index = tier.tier
+        .clamp(0, ElementTier.iron.tier)
+        .toString()
+        .padLeft(2, '0');
+    return 'sfx/plucks/${pluckFolderFor(mode)}/$index.m4a';
+  }
+
+  static List<String> get _allPluckAssets => [
+    for (final mode in GameMode.values)
+      for (final tier in ElementTier.values)
+        pluckAssetFor(mode: mode, tier: tier),
+  ];
 
   /// 0..1 master SFX level (applied relative to pluck/spring gains).
   Future<void> setVolume(double volume) async {
@@ -60,7 +74,7 @@ class SfxController {
   Future<void> _doPreload() async {
     try {
       await AudioPlayer.global.setAudioContext(_sfxContext);
-      await AudioCache.instance.loadAll(const [_guitarAsset, _springAsset]);
+      await AudioCache.instance.loadAll([_springAsset, ..._allPluckAssets]);
 
       for (var i = 0; i < _pluckPoolSize; i++) {
         _plucks.add(await _makePlayer(volume: _volume * _pluckGain));
@@ -97,25 +111,16 @@ class SfxController {
       audioFocus: AndroidAudioFocus.none,
       stayAwake: false,
     ),
-    iOS: AudioContextIOS(
-      category: AVAudioSessionCategory.ambient,
-    ),
+    iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
   );
 
-  static double rateForTier(ElementTier tier) {
-    final i = tier.tier.clamp(0, _semitones.length - 1);
-    // Map 0..24 semitones into one octave of rate so every step is ≥ 0.5.
-    return 0.5 * math.pow(2, _semitones[i] / 24.0);
-  }
-
-  /// Soft nylon pluck pitched to the product's ladder rung.
-  void playMergePluck(ElementTier result) {
+  /// Soft nylon pluck for the product's ladder rung in this mode's scale.
+  void playMergePluck(ElementTier result, {required GameMode mode}) {
     if (!enabled) return;
-    final rate = rateForTier(result);
-    unawaited(_playPluck(rate));
+    unawaited(_playPluck(pluckAssetFor(mode: mode, tier: result)));
   }
 
-  Future<void> _playPluck(double rate) async {
+  Future<void> _playPluck(String asset) async {
     if (!_ready) await preload();
     if (_plucks.isEmpty) return;
     final player = _plucks[_pluckIndex];
@@ -123,9 +128,7 @@ class SfxController {
     try {
       await player.stop();
       await player.setVolume(_volume * _pluckGain);
-      await player.play(AssetSource(_guitarAsset));
-      // Apply after play — some backends reset rate when starting a source.
-      await player.setPlaybackRate(rate);
+      await player.play(AssetSource(asset));
     } catch (e) {
       debugPrint('Sfx pluck failed: $e');
     }
@@ -144,7 +147,6 @@ class SfxController {
     try {
       await player.stop();
       await player.setVolume(_volume * _springGain);
-      await player.setPlaybackRate(1.0);
       await player.play(AssetSource(_springAsset));
     } catch (e) {
       debugPrint('Sfx spring failed: $e');

@@ -72,7 +72,8 @@ class MergeSystem {
             null) {
           continue;
         }
-        final gap = a.body.position.distanceTo(b.body.position) -
+        final gap =
+            a.body.position.distanceTo(b.body.position) -
             a.effectiveRadius -
             b.effectiveRadius;
         if (gap <= GameConstants.mergeContactEpsilon) {
@@ -128,7 +129,7 @@ class MergeSystem {
       final massSum = massA + massB;
       final velocity = massSum > 0
           ? (a.body.linearVelocity * massA + b.body.linearVelocity * massB) /
-              massSum
+                massSum
           : Vector2.zero();
 
       final cascaded = a.freshFromMerge || b.freshFromMerge;
@@ -144,7 +145,7 @@ class MergeSystem {
 
       highestCreated = result;
       world.onElementCreated(result);
-      SfxController.instance.playMergePluck(result);
+      SfxController.instance.playMergePluck(result, mode: world.mode);
       // ignore: unawaited_futures
       AchievementHooks.onFusion(resultTier: result.tier);
 
@@ -158,9 +159,7 @@ class MergeSystem {
         velocity: velocity,
       );
 
-      world.add(
-        MergeFlash(at: mid, radius: result.radiusFor(world.mode)),
-      );
+      world.add(MergeFlash(at: mid, radius: result.radiusFor(world.mode)));
     }
   }
 }
