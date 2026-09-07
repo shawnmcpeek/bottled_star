@@ -861,13 +861,16 @@ class BottledStarWorld extends Forge2DWorld {
     rimPressureEnabled = false;
     injector.cancelCharge();
 
+    if (!voluntaryEnd) {
+      SfxController.instance.playGameOver();
+    }
+
     if (isCollapse && kilonovaCount >= 1) {
       activeEnding = RunEnding.kilonova;
     } else if (highestTier >= ElementTier.iron.tier) {
       activeEnding = RunEnding.supernova;
     } else {
       activeEnding = RunEnding.whiteDwarf;
-      SfxController.instance.playGameOver();
     }
 
     for (final n in nuclei) {

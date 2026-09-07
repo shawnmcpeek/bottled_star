@@ -7,7 +7,7 @@ import '../element_tier.dart';
 import '../modes/game_mode.dart';
 
 /// One-shot SFX: per-mode guitar plucks on merge, spring on Fe+Fe / kilonova,
-/// and a low-string sting on white dwarf / Challenge lost.
+/// and a low-string sting on involuntary loss.
 ///
 /// Each ladder rung is a baked AAC `.m4a` (iOS AVPlayer ignores pitch on
 /// `playbackRate`). Classic = harmonic minor, Collapse = diminished,
@@ -151,7 +151,7 @@ class SfxController {
     unawaited(_playNamed(_SfxOneShot.spring));
   }
 
-  /// Low-string cadence for white dwarf and Challenge lost.
+  /// Low-string cadence for an involuntary loss (rim fail, Challenge lost).
   void playGameOver() {
     if (!enabled) return;
     unawaited(_playNamed(_SfxOneShot.gameOver));
