@@ -1,7 +1,7 @@
 name: bottled_star
 description: "Bottled Star — a fusion drop-and-merge physics game."
 publish_to: 'none'
-version: 1.2.7+7
+version: 1.2.8+8
 
 environment:
   sdk: ^3.12.0

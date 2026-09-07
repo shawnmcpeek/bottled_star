@@ -6,7 +6,8 @@ import 'package:flutter/foundation.dart';
 import '../element_tier.dart';
 import '../modes/game_mode.dart';
 
-/// One-shot SFX: per-mode guitar plucks on merge, spring hit on Fe+Fe / kilonova.
+/// One-shot SFX: per-mode guitar plucks on merge, spring on Fe+Fe / kilonova,
+/// and a low-string sting on white dwarf / Challenge lost.
 ///
 /// Each ladder rung is a baked AAC `.m4a` (iOS AVPlayer ignores pitch on
 /// `playbackRate`). Classic = harmonic minor, Collapse = diminished,
@@ -16,11 +17,13 @@ class SfxController {
   static final SfxController instance = SfxController._();
 
   static const _springAsset = 'sfx/spring_metal.m4a';
+  static const gameOverAsset = 'sfx/game_over.m4a';
 
   static const int _pluckPoolSize = 4;
 
   final List<AudioPlayer> _plucks = [];
   AudioPlayer? _spring;
+  AudioPlayer? _gameOver;
   int _pluckIndex = 0;
   bool enabled = true;
   bool _ready = false;
@@ -29,6 +32,7 @@ class SfxController {
 
   static const double _pluckGain = 0.75;
   static const double _springGain = 1.0;
+  static const double _gameOverGain = 0.9;
 
   static bool get _preferLowLatency =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -64,6 +68,7 @@ class SfxController {
       await p.setVolume(_volume * _pluckGain);
     }
     await _spring?.setVolume(_volume * _springGain);
+    await _gameOver?.setVolume(_volume * _gameOverGain);
   }
 
   /// Warm cache + players early (menu / mode select) so first merge is instant.
@@ -74,18 +79,24 @@ class SfxController {
   Future<void> _doPreload() async {
     try {
       await AudioPlayer.global.setAudioContext(_sfxContext);
-      await AudioCache.instance.loadAll([_springAsset, ..._allPluckAssets]);
+      await AudioCache.instance.loadAll([
+        _springAsset,
+        gameOverAsset,
+        ..._allPluckAssets,
+      ]);
 
       for (var i = 0; i < _pluckPoolSize; i++) {
         _plucks.add(await _makePlayer(volume: _volume * _pluckGain));
       }
       _spring = await _makePlayer(volume: _volume * _springGain);
+      _gameOver = await _makePlayer(volume: _volume * _gameOverGain);
       _ready = true;
       debugPrint('SfxController ready (lowLatency=$_preferLowLatency)');
     } catch (e, st) {
       _preloadFuture = null;
       _plucks.clear();
       _spring = null;
+      _gameOver = null;
       _ready = false;
       debugPrint('SfxController preload failed: $e\n$st');
     }
@@ -137,19 +148,28 @@ class SfxController {
   /// Sci-fi spring for Fe+Fe supernova and remnant kilonova.
   void playSpringHit() {
     if (!enabled) return;
-    unawaited(_playSpring());
+    unawaited(_playNamed(_SfxOneShot.spring));
   }
 
-  Future<void> _playSpring() async {
+  /// Low-string cadence for white dwarf and Challenge lost.
+  void playGameOver() {
+    if (!enabled) return;
+    unawaited(_playNamed(_SfxOneShot.gameOver));
+  }
+
+  Future<void> _playNamed(_SfxOneShot shot) async {
     if (!_ready) await preload();
-    final player = _spring;
+    final player = switch (shot) {
+      _SfxOneShot.spring => _spring,
+      _SfxOneShot.gameOver => _gameOver,
+    };
     if (player == null) return;
     try {
       await player.stop();
-      await player.setVolume(_volume * _springGain);
-      await player.play(AssetSource(_springAsset));
+      await player.setVolume(_volume * shot.gain);
+      await player.play(AssetSource(shot.asset));
     } catch (e) {
-      debugPrint('Sfx spring failed: $e');
+      debugPrint('Sfx ${shot.label} failed: $e');
     }
   }
 
@@ -158,5 +178,26 @@ class SfxController {
       await p.stop();
     }
     await _spring?.stop();
+    await _gameOver?.stop();
   }
+}
+
+enum _SfxOneShot {
+  spring,
+  gameOver;
+
+  String get asset => switch (this) {
+    spring => SfxController._springAsset,
+    gameOver => SfxController.gameOverAsset,
+  };
+
+  double get gain => switch (this) {
+    spring => SfxController._springGain,
+    gameOver => SfxController._gameOverGain,
+  };
+
+  String get label => switch (this) {
+    spring => 'spring',
+    gameOver => 'game over',
+  };
 }

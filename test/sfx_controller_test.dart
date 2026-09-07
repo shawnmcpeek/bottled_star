@@ -35,6 +35,10 @@ void main() {
       );
     });
 
+    test('game over sting is a top-level sfx asset', () {
+      expect(SfxController.gameOverAsset, 'sfx/game_over.m4a');
+    });
+
     test('every mode has one asset per element tier', () {
       for (final mode in GameMode.values) {
         final paths = [

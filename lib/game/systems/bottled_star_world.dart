@@ -52,20 +52,20 @@ class BottledStarWorld extends Forge2DWorld {
     VoidGameCallback? onMerge,
     PressureCallback? onRimPressure,
     ChallengeEndCallback? onChallengeEnd,
-  })  : onScore = onScore ?? ((_, _) {}),
-        onGameOver = onGameOver ?? ((_) {}),
-        onTierReached = onTierReached ?? ((_) {}),
-        onQueueChanged = onQueueChanged ?? ((_, _) {}),
-        onEndingCard = onEndingCard ?? ((_) {}),
-        onFlash = onFlash ?? ((_) {}),
-        onShake = onShake ?? ((_, _) {}),
-        onShotFired = onShotFired ?? (() {}),
-        onMerge = onMerge ?? (() {}),
-        onRimPressure = onRimPressure ?? ((_) {}),
-        onChallengeEnd = onChallengeEnd ?? ((_) {}),
-        allowSameTierMerges = !(challengeLevel?.noSameTier ?? false),
-        injectionQueue = challengeLevel?.createQueue() ?? InjectionQueue(),
-        super(gravity: Vector2.zero());
+  }) : onScore = onScore ?? ((_, _) {}),
+       onGameOver = onGameOver ?? ((_) {}),
+       onTierReached = onTierReached ?? ((_) {}),
+       onQueueChanged = onQueueChanged ?? ((_, _) {}),
+       onEndingCard = onEndingCard ?? ((_) {}),
+       onFlash = onFlash ?? ((_) {}),
+       onShake = onShake ?? ((_, _) {}),
+       onShotFired = onShotFired ?? (() {}),
+       onMerge = onMerge ?? (() {}),
+       onRimPressure = onRimPressure ?? ((_) {}),
+       onChallengeEnd = onChallengeEnd ?? ((_) {}),
+       allowSameTierMerges = !(challengeLevel?.noSameTier ?? false),
+       injectionQueue = challengeLevel?.createQueue() ?? InjectionQueue(),
+       super(gravity: Vector2.zero());
 
   final GameMode mode;
 
@@ -148,8 +148,7 @@ class BottledStarWorld extends Forge2DWorld {
       .where((n) => n.isMounted && !n.pendingDestroy && n.tier == tier)
       .length;
 
-  bool get canInject =>
-      inputEnabled && !gameOver && _injectorLockout <= 0;
+  bool get canInject => inputEnabled && !gameOver && _injectorLockout <= 0;
 
   int get kilonovaCount => remnantSystem?.kilonovaCount ?? 0;
   int get supernovaCount => remnantSystem?.supernovaCount ?? 0;
@@ -229,8 +228,9 @@ class BottledStarWorld extends Forge2DWorld {
 
     final arc = level.injectionArc;
     if (arc != null) {
-      final centerDeg =
-          arc.centerDeg > 180 ? arc.centerDeg - 360 : arc.centerDeg;
+      final centerDeg = arc.centerDeg > 180
+          ? arc.centerDeg - 360
+          : arc.centerDeg;
       final centerRad = centerDeg * math.pi / 180;
       final halfWidthRad = (arc.widthDeg / 2) * math.pi / 180;
       final min = centerRad - halfWidthRad;
@@ -281,12 +281,24 @@ class BottledStarWorld extends Forge2DWorld {
     }
     nuclei.clear();
 
-    children.whereType<SeedParticle>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<RemnantStar>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<ScreenFlash>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<SupernovaBlast>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<EjectStreak>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<KilonovaBurst>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<SeedParticle>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<RemnantStar>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<ScreenFlash>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<SupernovaBlast>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<EjectStreak>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<KilonovaBurst>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
 
     chamber
       ..displayedPressure = 0
@@ -322,24 +334,24 @@ class BottledStarWorld extends Forge2DWorld {
     final queue = injectionQueue;
     final queueSnap = switch (queue) {
       InjectionQueue() => QueueSnapshot.weighted(
-          current: queue.current.tier,
-          next: queue.next.tier,
-          unlockedThrough: queue.unlockedThrough,
-        ),
+        current: queue.current.tier,
+        next: queue.next.tier,
+        unlockedThrough: queue.unlockedThrough,
+      ),
       FixedInjectionQueue() => QueueSnapshot.fixed(
-          current: queue.isExhausted
-              ? (queue.sequence.isEmpty ? 0 : queue.sequence.last.tier)
-              : queue.current.tier,
-          next: queue.isExhausted
-              ? (queue.sequence.isEmpty ? 0 : queue.sequence.last.tier)
-              : queue.next.tier,
-          index: queue.index,
-        ),
+        current: queue.isExhausted
+            ? (queue.sequence.isEmpty ? 0 : queue.sequence.last.tier)
+            : queue.current.tier,
+        next: queue.isExhausted
+            ? (queue.sequence.isEmpty ? 0 : queue.sequence.last.tier)
+            : queue.next.tier,
+        index: queue.index,
+      ),
       _ => QueueSnapshot.weighted(
-          current: ElementTier.hydrogen.tier,
-          next: ElementTier.hydrogen.tier,
-          unlockedThrough: 0,
-        ),
+        current: ElementTier.hydrogen.tier,
+        next: ElementTier.hydrogen.tier,
+        unlockedThrough: 0,
+      ),
     };
 
     ChallengeTrackerSnapshot? challengeSnap;
@@ -434,12 +446,24 @@ class BottledStarWorld extends Forge2DWorld {
     }
     nuclei.clear();
 
-    children.whereType<SeedParticle>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<RemnantStar>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<ScreenFlash>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<SupernovaBlast>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<EjectStreak>().toList().forEach((c) => c.removeFromParent());
-    children.whereType<KilonovaBurst>().toList().forEach((c) => c.removeFromParent());
+    children.whereType<SeedParticle>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<RemnantStar>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<ScreenFlash>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<SupernovaBlast>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<EjectStreak>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
+    children.whereType<KilonovaBurst>().toList().forEach(
+      (c) => c.removeFromParent(),
+    );
 
     chamber
       ..displayedPressure = 0
@@ -469,8 +493,9 @@ class BottledStarWorld extends Forge2DWorld {
       }
       final arc = challengeLevel!.injectionArc;
       if (arc != null) {
-        final centerDeg =
-            arc.centerDeg > 180 ? arc.centerDeg - 360 : arc.centerDeg;
+        final centerDeg = arc.centerDeg > 180
+            ? arc.centerDeg - 360
+            : arc.centerDeg;
         final centerRad = centerDeg * math.pi / 180;
         final halfWidthRad = (arc.widthDeg / 2) * math.pi / 180;
         injector
@@ -589,14 +614,13 @@ class BottledStarWorld extends Forge2DWorld {
 
     final dir = injector.fireDirection;
     final spawn = injector.tipPosition + dir * 8;
-    final maxSpawn =
-        GameConstants.chamberRadius - tier.radiusFor(mode) - 2;
+    final maxSpawn = GameConstants.chamberRadius - tier.radiusFor(mode) - 2;
     final spawnClamped = spawn.length > maxSpawn
         ? spawn.normalized() * maxSpawn
         : spawn;
 
-    final impulse = injector.impulseForPower(power01) *
-        ElementTuning.impulseScaleFor(mode);
+    final impulse =
+        injector.impulseForPower(power01) * ElementTuning.impulseScaleFor(mode);
     final speed = impulse * 0.28;
     final velocity = dir * speed;
 
@@ -710,8 +734,9 @@ class BottledStarWorld extends Forge2DWorld {
     _sinceLastChallengeShot += dt;
     if (_sinceLastChallengeShot < GameConstants.challengeSettleSeconds) return;
 
-    final boardBodies =
-        nuclei.where((n) => n.isMounted && !n.pendingDestroy).length;
+    final boardBodies = nuclei
+        .where((n) => n.isMounted && !n.pendingDestroy)
+        .length;
     tracker.evaluateAtSettle(boardBodies: boardBodies);
     if (tracker.status != ChallengeRunStatus.playing) {
       _endChallengeRun(tracker.status);
@@ -728,6 +753,9 @@ class BottledStarWorld extends Forge2DWorld {
     for (final n in nuclei) {
       if (n.isMounted) n.body.linearVelocity.setZero();
     }
+    if (status == ChallengeRunStatus.lost) {
+      SfxController.instance.playGameOver();
+    }
     onChallengeEnd(status);
   }
 
@@ -741,8 +769,7 @@ class BottledStarWorld extends Forge2DWorld {
       } else {
         n.rimPressure -= GameConstants.kRimDrainRate * dt;
       }
-      n.rimPressure =
-          n.rimPressure.clamp(0.0, GameConstants.kRimPressureLimit);
+      n.rimPressure = n.rimPressure.clamp(0.0, GameConstants.kRimPressureLimit);
 
       if (n.rimPressure >= GameConstants.kRimPressureLimit) {
         if (challengeLevel != null) {
@@ -757,7 +784,7 @@ class BottledStarWorld extends Forge2DWorld {
     final target = nuclei.isEmpty
         ? 0.0
         : nuclei.map((n) => n.rimPressure).fold<double>(0, math.max) /
-            GameConstants.kRimPressureLimit;
+              GameConstants.kRimPressureLimit;
 
     _displayedPressure +=
         (target - _displayedPressure) * (1 - math.exp(-8.0 * dt));
@@ -778,7 +805,8 @@ class BottledStarWorld extends Forge2DWorld {
       for (var j = i + 1; j < irons.length; j++) {
         final a = irons[i];
         final b = irons[j];
-        final gap = a.body.position.distanceTo(b.body.position) -
+        final gap =
+            a.body.position.distanceTo(b.body.position) -
             a.effectiveRadius -
             b.effectiveRadius;
         if (gap <= GameConstants.kSupernovaContactEpsilon) {
@@ -839,6 +867,7 @@ class BottledStarWorld extends Forge2DWorld {
       activeEnding = RunEnding.supernova;
     } else {
       activeEnding = RunEnding.whiteDwarf;
+      SfxController.instance.playGameOver();
     }
 
     for (final n in nuclei) {
