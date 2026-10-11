@@ -5,12 +5,12 @@
     {
       "id": "p2_01",
       "name": "Iron Wall",
-      "blurb": "Caged again, but the wall is iron this time. It snaps back to shape fast.",
+      "blurb": "Four irons around an argon post. Pair two hydrogens in a gap. Helium that falls in climbs the post, it does not turn it into iron. Two irons touching is still a supernova.",
 
       "seed": {
         "bodies": [
           {
-            "element": "H",
+            "element": "Ar",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
@@ -20,8 +20,15 @@
             "element": "Fe",
             "count": 4,
             "placement": "ring",
-            "radiusFrac": 0.47,
-            "phaseDeg": 0
+            "radiusFrac": 0.52,
+            "phaseDeg": 45
+          },
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.42
           }
         ],
         "baked": null
@@ -40,7 +47,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 14 }
+        { "type": "maxBodies", "value": 18 }
       ],
 
       "rules": { "remnants": false },
@@ -51,12 +58,12 @@
     {
       "id": "p2_02",
       "name": "Second Door",
-      "blurb": "Break the outer wall, then the inner one. The gaps don't line up.",
+      "blurb": "Neon inner ring, calcium outer ring, iron post so the gaps stay open. The gaps do not line up.",
 
       "seed": {
         "bodies": [
           {
-            "element": "H",
+            "element": "Fe",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
@@ -66,15 +73,22 @@
             "element": "Ne",
             "count": 4,
             "placement": "ring",
-            "radiusFrac": 0.3,
+            "radiusFrac": 0.42,
             "phaseDeg": 45
           },
           {
             "element": "Ca",
             "count": 4,
             "placement": "ring",
-            "radiusFrac": 0.55,
+            "radiusFrac": 0.78,
             "phaseDeg": 0
+          },
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.55
           }
         ],
         "baked": null
@@ -93,7 +107,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 14 }
+        { "type": "maxBodies", "value": 22 }
       ],
 
       "rules": { "remnants": false },
@@ -104,23 +118,30 @@
     {
       "id": "p2_03",
       "name": "Trapped Target",
-      "blurb": "It's not the fuel that's caged this time. It's the thing you're trying to feed.",
+      "blurb": "Oxygen in a gap, argon around an iron post so they cannot seal. Helium-capture the oxygen.",
 
       "seed": {
         "bodies": [
           {
-            "element": "O",
+            "element": "Fe",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.05
+            "radiusFrac": 0.0
           },
           {
             "element": "Ar",
             "count": 4,
             "placement": "ring",
-            "radiusFrac": 0.4,
-            "phaseDeg": 0
+            "radiusFrac": 0.52,
+            "phaseDeg": 45
+          },
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.38
           }
         ],
         "baked": null
@@ -139,7 +160,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 12 }
+        { "type": "maxBodies", "value": 16 }
       ],
 
       "rules": { "remnants": false },
@@ -150,22 +171,40 @@
     {
       "id": "p2_04",
       "name": "Two Chances",
-      "blurb": "Two caged hydrogens, opposite ends of the chamber, one shared budget. Fumble one, you still have the other.",
+      "blurb": "Two hydrogens in opposite gaps around an iron post. Neon holds the doors. Fumble one, you still have the other.",
 
       "seed": {
-        "bodies": [],
-        "baked": [
-          { "element": "H", "x": 0, "y": 140, "angle": 0 },
-          { "element": "Ne", "x": 60, "y": 140, "angle": 0 },
-          { "element": "Ne", "x": 0, "y": 200, "angle": 0 },
-          { "element": "Ne", "x": -60, "y": 140, "angle": 0 },
-          { "element": "Ne", "x": 0, "y": 80, "angle": 0 },
-          { "element": "H", "x": 0, "y": -140, "angle": 0 },
-          { "element": "Ne", "x": 60, "y": -140, "angle": 0 },
-          { "element": "Ne", "x": 0, "y": -200, "angle": 0 },
-          { "element": "Ne", "x": -60, "y": -140, "angle": 0 },
-          { "element": "Ne", "x": 0, "y": -80, "angle": 0 }
-        ]
+        "bodies": [
+          {
+            "element": "Fe",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
+            "element": "Ne",
+            "count": 4,
+            "placement": "ring",
+            "radiusFrac": 0.42,
+            "phaseDeg": 45
+          },
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.4
+          },
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 270,
+            "radiusFrac": 0.4
+          }
+        ],
+        "baked": null
       },
 
       "queue": {
@@ -192,12 +231,12 @@
     {
       "id": "p2_05",
       "name": "Deadbolt",
-      "blurb": "Six pieces in the ring instead of four. The gaps get a lot smaller.",
+      "blurb": "Six silicons around an iron post. The gaps are tight. Helium-capture the oxygen in a door.",
 
       "seed": {
         "bodies": [
           {
-            "element": "O",
+            "element": "Fe",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
@@ -207,8 +246,15 @@
             "element": "Si",
             "count": 6,
             "placement": "ring",
-            "radiusFrac": 0.38,
+            "radiusFrac": 0.48,
             "phaseDeg": 0
+          },
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.36
           }
         ],
         "baked": null
@@ -227,7 +273,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 14 }
+        { "type": "maxBodies", "value": 18 }
       ],
 
       "rules": { "remnants": false },
@@ -266,16 +312,30 @@
     {
       "id": "p2_07",
       "name": "Same Story, Higher Up",
-      "blurb": "Two oxygens, close together. The shortcut still works up here.",
+      "blurb": "Two oxygens around a hydrogen pin. Knock them into sulfur. Gravity will not pair them for you.",
 
       "seed": {
         "bodies": [
           {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
             "element": "O",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.4,
-            "arcDeg": [70, 110]
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.28
+          },
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 180,
+            "radiusFrac": 0.28
           }
         ],
         "baked": null
@@ -305,7 +365,7 @@
     {
       "id": "p2_08",
       "name": "Same Story, No Shortcuts",
-      "blurb": "Same two oxygens. The shortcut is illegal today — that's six helium captures, not zero.",
+      "blurb": "Same two oxygens. The shortcut is illegal today — that's four helium captures, not zero.",
 
       "seed": {
         "bodies": [
@@ -345,16 +405,30 @@
     {
       "id": "p2_09",
       "name": "Compound Interest",
-      "blurb": "Two neons, close together. Same trick, higher stakes.",
+      "blurb": "Two neons around a hydrogen pin. Knock them into calcium. Gravity will not pair them for you.",
 
       "seed": {
         "bodies": [
           {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
             "element": "Ne",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.45,
-            "arcDeg": [70, 110]
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.3
+          },
+          {
+            "element": "Ne",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 180,
+            "radiusFrac": 0.3
           }
         ],
         "baked": null
@@ -424,30 +498,37 @@
     {
       "id": "p2_11",
       "name": "Three Fronts",
-      "blurb": "Carbon, oxygen, neon — three separate reagents. Exactly enough helium for all three, not one more.",
+      "blurb": "Carbon, oxygen, neon around a hydrogen pin. Exactly enough helium for all three, not one more.",
 
       "seed": {
         "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "O",
             "count": 1,
             "placement": "point",
             "angleDeg": 120,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Ne",
             "count": 1,
             "placement": "point",
             "angleDeg": 240,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -479,37 +560,44 @@
     {
       "id": "p2_12",
       "name": "Four Fronts, Fewer Answers",
-      "blurb": "Four reagents around the rim. Exactly four heliums between them.",
+      "blurb": "Four reagents around a hydrogen pin. Exactly four heliums between them.",
 
       "seed": {
         "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "O",
             "count": 1,
             "placement": "point",
             "angleDeg": 90,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Ne",
             "count": 1,
             "placement": "point",
             "angleDeg": 180,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Mg",
             "count": 1,
             "placement": "point",
             "angleDeg": 270,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -542,30 +630,37 @@
     {
       "id": "p2_13",
       "name": "Order of Operations",
-      "blurb": "Same three fronts. You don't choose when helium comes up — only where you aim it.",
+      "blurb": "Same three fronts around a hydrogen pin. You don't choose when helium comes up — only where you aim it.",
 
       "seed": {
         "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "O",
             "count": 1,
             "placement": "point",
             "angleDeg": 120,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Ne",
             "count": 1,
             "placement": "point",
             "angleDeg": 240,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -597,30 +692,37 @@
     {
       "id": "p2_14",
       "name": "Don't Overshoot",
-      "blurb": "Plenty of helium this time. Each front only needs one — feed any of them twice and you'll wish you hadn't.",
+      "blurb": "Plenty of helium this time. Each front around the pin only needs one — feed any of them twice and you'll wish you hadn't.",
 
       "seed": {
         "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "O",
             "count": 1,
             "placement": "point",
             "angleDeg": 120,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Ne",
             "count": 1,
             "placement": "point",
             "angleDeg": 240,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -653,37 +755,44 @@
     {
       "id": "p2_15",
       "name": "Full Circle",
-      "blurb": "Four fronts, real spare helium, one wrong feed away from ending it.",
+      "blurb": "Four fronts around a hydrogen pin, real spare helium, one wrong feed away from ending it.",
 
       "seed": {
         "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "O",
             "count": 1,
             "placement": "point",
             "angleDeg": 90,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Ne",
             "count": 1,
             "placement": "point",
             "angleDeg": 180,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Mg",
             "count": 1,
             "placement": "point",
             "angleDeg": 270,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -717,23 +826,37 @@
     {
       "id": "p2_16",
       "name": "Triple Threat",
-      "blurb": "No shortcuts, no hoarding helium, no spare room. Three rules at once.",
+      "blurb": "No shortcuts, no hoarding helium, no spare room. Two neons and a carbon around a hydrogen pin.",
 
       "seed": {
         "bodies": [
           {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
             "element": "Ne",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.45,
-            "arcDeg": [70, 110]
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.3
+          },
+          {
+            "element": "Ne",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 120,
+            "radiusFrac": 0.3
           },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
-            "angleDeg": 200,
-            "radiusFrac": 0.35
+            "angleDeg": 240,
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -765,12 +888,12 @@
     {
       "id": "p2_17",
       "name": "Glass Cannon",
-      "blurb": "The iron wall again, now with a narrow window to fire through. Shove carefully — two of these touching is not a drill.",
+      "blurb": "Iron wall, argon post, one gap in the window. Helium that falls in climbs the post. Two irons touching is not a drill.",
 
       "seed": {
         "bodies": [
           {
-            "element": "H",
+            "element": "Ar",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
@@ -780,8 +903,15 @@
             "element": "Fe",
             "count": 4,
             "placement": "ring",
-            "radiusFrac": 0.47,
-            "phaseDeg": 0
+            "radiusFrac": 0.52,
+            "phaseDeg": 45
+          },
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.42
           }
         ],
         "baked": null
@@ -802,7 +932,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 14 }
+        { "type": "maxBodies", "value": 18 }
       ],
 
       "rules": { "remnants": false },
@@ -813,23 +943,44 @@
     {
       "id": "p2_18",
       "name": "Everything, Quietly",
-      "blurb": "Two calciums to finish, two carbons tempting a shortcut that's off the table. Remnants are live.",
+      "blurb": "Two calciums on a hydrogen pin, two carbons that cannot pair. Remnants are live.",
 
       "seed": {
         "bodies": [
           {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
             "element": "Ca",
-            "count": 2,
-            "placement": "ring",
-            "radiusFrac": 0.45,
-            "phaseDeg": 0
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.32
+          },
+          {
+            "element": "Ca",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 180,
+            "radiusFrac": 0.32
           },
           {
             "element": "C",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.4,
-            "arcDeg": [70, 110]
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.32
+          },
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 270,
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -860,16 +1011,30 @@
     {
       "id": "p2_19",
       "name": "Precision Detonation",
-      "blurb": "Two calciums, one narrow window. Finish them both through a gap this tight.",
+      "blurb": "Two calciums on a hydrogen pin, both in the window. Finish each one. Gravity will not pile them into one target.",
 
       "seed": {
         "bodies": [
           {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
+          {
             "element": "Ca",
-            "count": 2,
-            "placement": "ring",
-            "radiusFrac": 0.45,
-            "phaseDeg": 0
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 60,
+            "radiusFrac": 0.32
+          },
+          {
+            "element": "Ca",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 120,
+            "radiusFrac": 0.32
           }
         ],
         "baked": null
@@ -901,37 +1066,51 @@
     {
       "id": "p2_20",
       "name": "Everything",
-      "blurb": "Three fronts, a decoy pair that's illegal to touch, exactly enough helium if you don't waste any.",
+      "blurb": "Three fronts around a hydrogen pin, plus two carbons opposite that must never touch. Exactly enough helium if you don't waste any.",
 
       "seed": {
         "bodies": [
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.0
+          },
           {
             "element": "C",
             "count": 1,
             "placement": "point",
             "angleDeg": 0,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "O",
             "count": 1,
             "placement": "point",
             "angleDeg": 120,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "Mg",
             "count": 1,
             "placement": "point",
             "angleDeg": 240,
-            "radiusFrac": 0.35
+            "radiusFrac": 0.32
           },
           {
             "element": "C",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.4,
-            "arcDeg": [280, 320]
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.32
+          },
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 270,
+            "radiusFrac": 0.32
           }
         ],
         "baked": null

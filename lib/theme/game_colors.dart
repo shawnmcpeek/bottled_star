@@ -17,6 +17,10 @@ abstract final class GameColors {
   static const injectorBody = Color(0xFFFFD27A);
   static const injectorCharge = Color(0xFFFFF1B8);
   static const hudPanel = Color(0x990A0612);
+  static const challengeWinScrim = Color(0xE6100C04);
+  static const challengeFailScrim = Color(0xE6140408);
+  static const challengeWinPanel = Color(0xF01A1208);
+  static const challengeFailPanel = Color(0xF018080C);
 }
 
 abstract final class TierPalette {

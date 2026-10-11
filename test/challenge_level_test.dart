@@ -389,6 +389,9 @@ void main() {
         lib.pack(3)!.levels.map((l) => l.id).toList(),
         [for (var i = 1; i <= 20; i++) 'p3_${i.toString().padLeft(2, '0')}'],
       );
+      expect(lib.nextAfter('p1_01')!.id, 'p1_02');
+      expect(lib.nextAfter('p1_20')!.id, 'p2_01');
+      expect(lib.nextAfter('p3_20'), isNull);
     });
   });
 
@@ -405,7 +408,7 @@ void main() {
       expect(q.current, ElementTier.hydrogen);
       expect(q.next, ElementTier.helium);
       expect(q.isExhausted, isFalse);
-      expect(q.visible, [ElementTier.hydrogen, ElementTier.helium]);
+      expect(q.visible(), [ElementTier.hydrogen, ElementTier.helium]);
 
       expect(q.consume(), ElementTier.hydrogen);
       expect(q.current, ElementTier.helium);
@@ -448,6 +451,45 @@ void main() {
       expect(q.consume(), ElementTier.carbon);
       expect(q.isExhausted, isTrue);
     });
+
+    test('caps preview to remaining shot budget', () {
+      final q = FixedInjectionQueue(
+        sequence: [
+          ElementTier.hydrogen,
+          ElementTier.helium,
+          ElementTier.carbon,
+          ElementTier.oxygen,
+          ElementTier.neon,
+        ],
+        visibleCount: 2,
+      );
+
+      expect(
+        q.visible(remainingShots: 5),
+        [ElementTier.hydrogen, ElementTier.helium],
+      );
+      expect(q.nextIfAvailable(remainingShots: 5), ElementTier.helium);
+
+      q.consume();
+      q.consume();
+      q.consume();
+      expect(q.current, ElementTier.oxygen);
+      expect(
+        q.visible(remainingShots: 2),
+        [ElementTier.oxygen, ElementTier.neon],
+      );
+      expect(q.nextIfAvailable(remainingShots: 2), ElementTier.neon);
+
+      q.consume();
+      expect(q.current, ElementTier.neon);
+      expect(q.visible(remainingShots: 1), [ElementTier.neon]);
+      expect(q.nextIfAvailable(remainingShots: 1), isNull);
+
+      q.consume();
+      expect(q.isExhausted, isTrue);
+      expect(q.visible(remainingShots: 0), isEmpty);
+      expect(q.nextIfAvailable(remainingShots: 0), isNull);
+    });
   });
 
   group('ChallengeRunTracker goals and constraints', () {
@@ -463,7 +505,7 @@ void main() {
       return LevelSpec.fromJson(map, pack: 1);
     }
 
-    test('produce is cumulative; evaluated at settle', () {
+    test('produce-only goals win as soon as they are met', () {
       final tracker = ChallengeRunTracker(
         levelWith(
           goals: [
@@ -474,13 +516,67 @@ void main() {
       );
 
       tracker.onElementCreated(ElementTier.magnesium);
-      // Created then "consumed" — produce still counts.
       expect(tracker.produced[ElementTier.magnesium], 1);
+      expect(tracker.status, ChallengeRunStatus.won);
+    });
+
+    test('produce waits for settle when mixed with occupancy goals', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'produce', 'element': 'Mg', 'count': 1},
+            {'type': 'boardUnder', 'value': 5},
+          ],
+          constraints: [],
+        ),
+      );
+
+      tracker.onElementCreated(ElementTier.magnesium);
       expect(tracker.status, ChallengeRunStatus.playing);
 
       tracker.onShotFired();
-      final won = tracker.evaluateAtSettle(boardBodies: 0);
+      final won = tracker.evaluateAtSettle(boardBodies: 4);
       expect(won, isTrue);
+      expect(tracker.status, ChallengeRunStatus.won);
+    });
+
+    test('goalFlags lights each produce goal as soon as it is created', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'produce', 'element': 'C', 'count': 1},
+            {'type': 'produce', 'element': 'Ne', 'count': 1},
+          ],
+          constraints: [],
+        ),
+      );
+
+      expect(tracker.goalFlags, [false, false]);
+      tracker.onElementCreated(ElementTier.carbon);
+      expect(tracker.isGoalMet(tracker.spec.goals[0]), isTrue);
+      expect(tracker.isGoalMet(tracker.spec.goals[1]), isFalse);
+      expect(tracker.goalFlags, [true, false]);
+      tracker.onElementCreated(ElementTier.neon);
+      expect(tracker.goalFlags, [true, true]);
+    });
+
+    test('produce-only win is not voided by a later neverProduce', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'produce', 'element': 'He', 'count': 2},
+          ],
+          constraints: [
+            {'type': 'neverProduce', 'element': 'Fe'},
+          ],
+        ),
+      );
+
+      tracker.onElementCreated(ElementTier.helium);
+      expect(tracker.status, ChallengeRunStatus.playing);
+      tracker.onElementCreated(ElementTier.helium);
+      expect(tracker.status, ChallengeRunStatus.won);
+      tracker.onElementCreated(ElementTier.iron);
       expect(tracker.status, ChallengeRunStatus.won);
     });
 
@@ -505,6 +601,22 @@ void main() {
       tracker.onShotFired();
       tracker.evaluateAtSettle(boardBodies: 1);
       expect(tracker.status, ChallengeRunStatus.lost);
+    });
+
+    test('boardUnder does not win before the first shot', () {
+      final tracker = ChallengeRunTracker(
+        levelWith(
+          goals: [
+            {'type': 'boardUnder', 'value': 3},
+          ],
+          constraints: [],
+        ),
+      );
+      expect(tracker.evaluateAtSettle(boardBodies: 2), isFalse);
+      expect(tracker.status, ChallengeRunStatus.playing);
+      tracker.onShotFired();
+      expect(tracker.evaluateAtSettle(boardBodies: 2), isTrue);
+      expect(tracker.status, ChallengeRunStatus.won);
     });
 
     test('boardUnder only wins at settle occupancy', () {
@@ -624,6 +736,14 @@ void main() {
       expect(
         tracker.mergeResult(ElementTier.helium, ElementTier.carbon),
         ElementTier.oxygen,
+      );
+      expect(
+        tracker.mergeResult(ElementTier.hydrogen, ElementTier.hydrogen),
+        ElementTier.helium,
+      );
+      expect(
+        tracker.mergeResult(ElementTier.helium, ElementTier.helium),
+        ElementTier.carbon,
       );
 
       // Classic path (default) still merges same-tier — no leakage.

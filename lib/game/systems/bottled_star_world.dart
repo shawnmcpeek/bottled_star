@@ -28,7 +28,8 @@ import '../challenge/fixed_queue.dart';
 typedef ScoreCallback = void Function(int delta, int total);
 typedef GameOverCallback = void Function(RunEnding ending);
 typedef TierCallback = void Function(ElementTier tier);
-typedef QueueCallback = void Function(ElementTier current, ElementTier next);
+typedef QueueCallback = void Function(ElementTier? current, ElementTier? next);
+typedef ChallengeGoalsCallback = void Function(List<bool> met);
 typedef EndingCardCallback = void Function(RunEnding ending);
 typedef FlashCallback = void Function(double seconds);
 typedef ShakeCallback = void Function(double seconds, double intensity);
@@ -51,6 +52,8 @@ class BottledStarWorld extends Forge2DWorld {
     VoidGameCallback? onShotFired,
     VoidGameCallback? onMerge,
     PressureCallback? onRimPressure,
+    VoidGameCallback? onChallengeHoldStart,
+    ChallengeGoalsCallback? onChallengeGoals,
     ChallengeEndCallback? onChallengeEnd,
   }) : onScore = onScore ?? ((_, _) {}),
        onGameOver = onGameOver ?? ((_) {}),
@@ -62,6 +65,8 @@ class BottledStarWorld extends Forge2DWorld {
        onShotFired = onShotFired ?? (() {}),
        onMerge = onMerge ?? (() {}),
        onRimPressure = onRimPressure ?? ((_) {}),
+       onChallengeHoldStart = onChallengeHoldStart ?? (() {}),
+       onChallengeGoals = onChallengeGoals ?? ((_) {}),
        onChallengeEnd = onChallengeEnd ?? ((_) {}),
        allowSameTierMerges = !(challengeLevel?.noSameTier ?? false),
        injectionQueue = challengeLevel?.createQueue() ?? InjectionQueue(),
@@ -90,6 +95,8 @@ class BottledStarWorld extends Forge2DWorld {
   VoidGameCallback onShotFired;
   VoidGameCallback onMerge;
   PressureCallback onRimPressure;
+  VoidGameCallback onChallengeHoldStart;
+  ChallengeGoalsCallback onChallengeGoals;
   ChallengeEndCallback onChallengeEnd;
 
   late final MergeSystem mergeSystem;
@@ -100,6 +107,9 @@ class BottledStarWorld extends Forge2DWorld {
   RemnantSystem? remnantSystem;
   ChallengeRunTracker? challengeTracker;
   double _sinceLastChallengeShot = 0;
+  ChallengeRunStatus? _pendingChallengeEnd;
+  double _challengeResultHold = 0;
+  List<bool> _publishedGoalFlags = const [];
 
   final List<Nucleus> nuclei = [];
   final List<void Function()> _postStepOps = [];
@@ -204,6 +214,7 @@ class BottledStarWorld extends Forge2DWorld {
 
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
+    _publishChallengeGoals();
   }
 
   /// Seed starting nuclei, arm the goal/constraint tracker, and clamp the
@@ -215,6 +226,9 @@ class BottledStarWorld extends Forge2DWorld {
 
     challengeTracker = ChallengeRunTracker(level);
     _sinceLastChallengeShot = 0;
+    _pendingChallengeEnd = null;
+    _challengeResultHold = 0;
+    _publishedGoalFlags = const [];
 
     for (final body in level.resolveSeed(
       chamberRadius: GameConstants.chamberRadius,
@@ -275,6 +289,9 @@ class BottledStarWorld extends Forge2DWorld {
     _pendingSupernovaB = null;
     _postStepOps.clear();
     remnantSystem?.reset();
+    _pendingChallengeEnd = null;
+    _challengeResultHold = 0;
+    _publishedGoalFlags = const [];
 
     for (final n in List<Nucleus>.from(nuclei)) {
       if (n.isMounted) n.removeFromParent();
@@ -315,19 +332,47 @@ class BottledStarWorld extends Forge2DWorld {
     setupChallenge();
 
     _publishQueue();
+    _publishChallengeGoals();
   }
 
   void _publishQueue() {
-    if (injectionQueue.isExhausted) {
-      final queue = injectionQueue;
-      if (queue is FixedInjectionQueue && queue.sequence.isNotEmpty) {
-        injector.loadedTier = queue.sequence.last;
-        onQueueChanged(queue.sequence.last, queue.sequence.last);
-      }
+    final remaining = challengeLevel == null
+        ? null
+        : challengeLevel!.budgetShots - shotCount;
+    if (injectionQueue.isExhausted ||
+        (remaining != null && remaining <= 0)) {
+      onQueueChanged(null, null);
       return;
     }
     injector.loadedTier = injectionQueue.current;
-    onQueueChanged(injectionQueue.current, injectionQueue.next);
+    final queue = injectionQueue;
+    final next = queue is FixedInjectionQueue
+        ? queue.nextIfAvailable(remainingShots: remaining)
+        : queue.next;
+    onQueueChanged(injectionQueue.current, next);
+  }
+
+  void _publishChallengeGoals() {
+    final tracker = challengeTracker;
+    if (tracker == null) {
+      if (_publishedGoalFlags.isNotEmpty) {
+        _publishedGoalFlags = const [];
+        onChallengeGoals(const []);
+      }
+      return;
+    }
+    final flags = tracker.goalFlags;
+    if (_sameFlags(flags, _publishedGoalFlags)) return;
+    _publishedGoalFlags = List<bool>.from(flags);
+    onChallengeGoals(_publishedGoalFlags);
+  }
+
+  static bool _sameFlags(List<bool> a, List<bool> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   RunSnapshot captureSnapshot() {
@@ -434,6 +479,9 @@ class BottledStarWorld extends Forge2DWorld {
     _pendingSupernovaB = null;
     _postStepOps.clear();
     _sinceLastChallengeShot = snap.challengeSettleElapsed;
+    _pendingChallengeEnd = null;
+    _challengeResultHold = 0;
+    _publishedGoalFlags = const [];
 
     remnantSystem?.reset();
     if (remnantSystem != null) {
@@ -526,6 +574,7 @@ class BottledStarWorld extends Forge2DWorld {
     }
 
     _publishQueue();
+    _publishChallengeGoals();
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
   }
@@ -576,8 +625,9 @@ class BottledStarWorld extends Forge2DWorld {
       final tracker = challengeTracker;
       if (tracker != null) {
         tracker.onElementCreated(tier);
-        if (tracker.status == ChallengeRunStatus.lost) {
-          _endChallengeRun(ChallengeRunStatus.lost);
+        _publishChallengeGoals();
+        if (tracker.status != ChallengeRunStatus.playing) {
+          _endChallengeRun(tracker.status);
         }
       }
     }
@@ -606,10 +656,15 @@ class BottledStarWorld extends Forge2DWorld {
     // settle delay leaves a window after the last budgeted shot where
     // input is technically still live. Block it here instead.
     if (injectionQueue.isExhausted) return false;
+    if (challengeLevel != null &&
+        shotCount >= challengeLevel!.budgetShots) {
+      return false;
+    }
     final power01 = injector.releaseCharge();
     if (power01 == null) return false;
 
     final tier = injectionQueue.consume();
+    shotCount++;
     _publishQueue();
 
     final dir = injector.fireDirection;
@@ -630,13 +685,13 @@ class BottledStarWorld extends Forge2DWorld {
       asProjectile: tier.isHydrogen,
       velocity: velocity,
     );
-    shotCount++;
     onShotFired();
 
     final tracker = challengeTracker;
     if (tracker != null) {
       tracker.onShotFired();
       _sinceLastChallengeShot = 0;
+      _publishChallengeGoals();
     }
     return true;
   }
@@ -669,7 +724,8 @@ class BottledStarWorld extends Forge2DWorld {
       _injectorLockout = math.max(0, _injectorLockout - dt);
     }
 
-    if (physicsEnabled && !gameOver) {
+    final holdingChallengeResult = _pendingChallengeEnd != null;
+    if (physicsEnabled && (!gameOver || holdingChallengeResult)) {
       for (final n in nuclei) {
         if (n.isMounted) n.applyRadialGravity();
       }
@@ -688,15 +744,24 @@ class BottledStarWorld extends Forge2DWorld {
         onMerge();
       }
 
-      _scanSupernova();
-      _resolveQueuedSupernova();
-      drainPostStep();
+      if (!holdingChallengeResult) {
+        _scanSupernova();
+        _resolveQueuedSupernova();
+        drainPostStep();
 
-      _updateRimPressure(dt);
+        _updateRimPressure(dt);
 
-      if (challengeTracker != null) {
-        _checkChallengeConstraints();
-        if (!gameOver) _updateChallengeSettle(dt);
+        if (challengeTracker != null) {
+          _checkChallengeConstraints();
+          if (!gameOver) _updateChallengeSettle(dt);
+        }
+      }
+    }
+
+    if (holdingChallengeResult) {
+      _challengeResultHold -= dt;
+      if (_challengeResultHold <= 0) {
+        _commitChallengeEnd();
       }
     }
   }
@@ -717,6 +782,7 @@ class BottledStarWorld extends Forge2DWorld {
       counts[n.tier] = (counts[n.tier] ?? 0) + 1;
     }
     tracker.onBoardChanged(totalBodies: total, countsByElement: counts);
+    _publishChallengeGoals();
     if (tracker.status != ChallengeRunStatus.playing) {
       _endChallengeRun(tracker.status);
     }
@@ -744,17 +810,31 @@ class BottledStarWorld extends Forge2DWorld {
   }
 
   void _endChallengeRun(ChallengeRunStatus status) {
-    if (gameOver) return;
+    if (gameOver || _pendingChallengeEnd != null) return;
+    _pendingChallengeEnd = status;
+    _challengeResultHold = GameConstants.challengeResultHoldSeconds;
     gameOver = true;
     inputEnabled = false;
-    physicsEnabled = false;
     rimPressureEnabled = false;
     injector.cancelCharge();
+    onChallengeHoldStart();
+    if (status == ChallengeRunStatus.lost) {
+      SfxController.instance.playGameOver();
+    }
+  }
+
+  void _commitChallengeEnd() {
+    final status = _pendingChallengeEnd;
+    if (status == null) return;
+    _pendingChallengeEnd = null;
+    _challengeResultHold = 0;
+    gameOver = true;
+    physicsEnabled = false;
     for (final n in nuclei) {
       if (n.isMounted) n.body.linearVelocity.setZero();
     }
-    if (status == ChallengeRunStatus.lost) {
-      SfxController.instance.playGameOver();
+    for (final r in remnantSystem?.remnants ?? const []) {
+      if (r.isMounted) r.body.linearVelocity.setZero();
     }
     onChallengeEnd(status);
   }
@@ -837,6 +917,7 @@ class BottledStarWorld extends Forge2DWorld {
     score += GameConstants.kSupernovaScore;
     onScore(GameConstants.kSupernovaScore, score);
     challengeTracker?.onSupernova();
+    _publishChallengeGoals();
 
     SfxController.instance.playSpringHit();
     HapticsController.instance.playBlast();

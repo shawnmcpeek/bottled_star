@@ -49,11 +49,25 @@ class FixedInjectionQueue implements InjectionSource {
   @override
   bool get isExhausted => _index >= sequence.length;
 
-  /// Upcoming shots for the HUD, length capped by [visibleCount].
-  List<ElementTier> get visible {
+  /// Upcoming shots for the HUD, capped by [visibleCount] and optional
+  /// remaining shot budget so the preview never shows unfireable molecules.
+  List<ElementTier> visible({int? remainingShots}) {
     if (visibleCount <= 0 || isExhausted) return const [];
-    final end = (_index + visibleCount).clamp(0, sequence.length);
+    var count = visibleCount;
+    if (remainingShots != null) {
+      if (remainingShots <= 0) return const [];
+      if (remainingShots < count) count = remainingShots;
+    }
+    final end = (_index + count).clamp(0, sequence.length);
     return sequence.sublist(_index, end);
+  }
+
+  /// Next queue entry if it can still be fired. Null on the last budgeted shot.
+  ElementTier? nextIfAvailable({int? remainingShots}) {
+    if (isExhausted) return null;
+    if (remainingShots != null && remainingShots <= 1) return null;
+    if (_index + 1 >= sequence.length) return null;
+    return sequence[_index + 1];
   }
 
   @override

@@ -23,13 +23,21 @@ class LevelLibrary {
 
   /// Play-order list across all loaded packs (pack order, then array order).
   List<LevelSpec> get allLevels => [
-        for (final packNum in _packs.keys.toList()..sort())
-          ..._packs[packNum]!.levels,
-      ];
+    for (final packNum in _packs.keys.toList()..sort())
+      ..._packs[packNum]!.levels,
+  ];
 
   LevelPack? pack(int number) => _packs[number];
 
   LevelSpec? byId(String id) => _byId[id];
+
+  /// Next level in play order, or null at the end of the last pack.
+  LevelSpec? nextAfter(String id) {
+    final all = allLevels;
+    final index = all.indexWhere((level) => level.id == id);
+    if (index < 0 || index + 1 >= all.length) return null;
+    return all[index + 1];
+  }
 
   LevelSpec require(String id) {
     final level = _byId[id];

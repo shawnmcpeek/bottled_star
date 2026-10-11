@@ -35,10 +35,14 @@ class ChallengeRunTracker {
   /// Latest live board composition, from the most recent [onBoardChanged].
   /// Backs [EliminateGoal] — current occupancy, not cumulative production.
   Map<ElementTier, int> _liveCounts = <ElementTier, int>{};
+  int _boardBodies = 0;
 
   /// Call at the moment a nucleus of [tier] is created (fusion product or
   /// inject). Checks [NeverProduceConstraint] immediately — even if a later
   /// step in the same chain would consume it.
+  ///
+  /// Produce-only levels win here too. Waiting for settle lets a later
+  /// capture (Caged: He+Ca → Fe) void a goal that already landed.
   void onElementCreated(ElementTier tier) {
     if (status != ChallengeRunStatus.playing) return;
     produced[tier] = (produced[tier] ?? 0) + 1;
@@ -55,6 +59,10 @@ class ChallengeRunTracker {
         return;
       }
     }
+
+    if (_produceOnlyGoalsMet()) {
+      status = ChallengeRunStatus.won;
+    }
   }
 
   /// Call whenever board occupancy changes (create or destroy).
@@ -63,6 +71,7 @@ class ChallengeRunTracker {
     required Map<ElementTier, int> countsByElement,
   }) {
     if (status != ChallengeRunStatus.playing) return;
+    _boardBodies = totalBodies;
     _liveCounts = countsByElement;
 
     for (final c in spec.constraints) {
@@ -113,8 +122,12 @@ class ChallengeRunTracker {
   ///
   /// [boardBodies] is the simultaneous nucleus count at settle.
   /// Returns true if the run just transitioned to won/lost.
+  ///
+  /// Occupancy wins do not count before the first shot — otherwise a
+  /// gravity merge on load can clear [BoardUnderGoal] while idle.
   bool evaluateAtSettle({required int boardBodies}) {
     if (status != ChallengeRunStatus.playing) return false;
+    if (shotsFired <= 0) return false;
 
     if (shotsFired >= spec.budgetShots && !_goalsSatisfied(boardBodies)) {
       status = ChallengeRunStatus.lost;
@@ -126,6 +139,21 @@ class ChallengeRunTracker {
       return true;
     }
     return false;
+  }
+
+  /// Per-goal completion using the latest production / board snapshot.
+  /// Produce goals light as soon as the element is created; occupancy goals
+  /// follow the last [onBoardChanged].
+  List<bool> get goalFlags => [
+    for (final g in spec.goals) isGoalMet(g),
+  ];
+
+  bool isGoalMet(LevelGoal goal) => _goalMet(goal, _boardBodies);
+
+  bool _produceOnlyGoalsMet() {
+    if (spec.goals.isEmpty) return false;
+    if (spec.goals.any((g) => g is! ProduceGoal)) return false;
+    return spec.goals.every(isGoalMet);
   }
 
   bool _goalsSatisfied(int boardBodies) {

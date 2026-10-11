@@ -66,6 +66,9 @@ abstract final class GameConstants {
   /// loss can be called.
   static const double challengeSettleSeconds = 1.2;
 
+  /// Challenge: beat after a win/fail so the board is visible before the card.
+  static const double challengeResultHoldSeconds = 1.6;
+
   // Ending timings
   static const double endingSkipAfterSeconds = 1.5;
   static const double whiteDwarfHold = 0.8;

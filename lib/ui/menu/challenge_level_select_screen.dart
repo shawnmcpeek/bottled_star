@@ -252,7 +252,7 @@ String _describeGoal(LevelGoal goal) {
   return switch (goal) {
     ProduceGoal(:final element, :final count) =>
       'Produce $count× ${element.symbol}',
-    BoardUnderGoal(:final value) => 'Board under $value',
+    BoardUnderGoal(:final value) => 'Fewer than $value nuclei',
     SurviveGoal(:final shots) => 'Survive $shots shots',
     EliminateGoal(:final element) => 'Eliminate all ${element.symbol}',
     CauseSupernovaGoal(:final count) => 'Cause $count× supernova',

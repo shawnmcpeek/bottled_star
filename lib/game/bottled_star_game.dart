@@ -27,14 +27,14 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     this.challengeLevel,
     this.resumeSavedRun = false,
   }) : super(
-          world: BottledStarWorld(
-            mode: mode,
-            challengeLevel: challengeLevel,
-            skipInitialChallengeSetup: resumeSavedRun,
-          ),
-          gravity: Vector2.zero(),
-          zoom: 1,
-        ) {
+         world: BottledStarWorld(
+           mode: mode,
+           challengeLevel: challengeLevel,
+           skipInitialChallengeSetup: resumeSavedRun,
+         ),
+         gravity: Vector2.zero(),
+         zoom: 1,
+       ) {
     world
       ..onScore = _handleScore
       ..onGameOver = _handleGameOver
@@ -46,6 +46,8 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       ..onShotFired = _handleShotFired
       ..onMerge = _handleMerge
       ..onRimPressure = _handleRimPressure
+      ..onChallengeHoldStart = _handleChallengeHoldStart
+      ..onChallengeGoals = _handleChallengeGoals
       ..onChallengeEnd = _handleChallengeEnd;
   }
 
@@ -64,10 +66,12 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   final ValueNotifier<bool> endingCardNotifier = ValueNotifier(false);
   final ValueNotifier<RunEnding?> endingNotifier = ValueNotifier(null);
   final ValueNotifier<ElementTier?> lastUnlockNotifier = ValueNotifier(null);
-  final ValueNotifier<ElementTier> currentShotNotifier =
-      ValueNotifier(ElementTier.hydrogen);
-  final ValueNotifier<ElementTier> nextShotNotifier =
-      ValueNotifier(ElementTier.hydrogen);
+  final ValueNotifier<ElementTier?> currentShotNotifier = ValueNotifier(
+    ElementTier.hydrogen,
+  );
+  final ValueNotifier<ElementTier?> nextShotNotifier = ValueNotifier(
+    ElementTier.hydrogen,
+  );
   final ValueNotifier<double> flashNotifier = ValueNotifier(0);
   final ValueNotifier<int> peakTierNotifier = ValueNotifier(0);
   final ValueNotifier<String?> endingLineNotifier = ValueNotifier(null);
@@ -76,6 +80,9 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
   final ValueNotifier<String> collapseBestNotifier = ValueNotifier('');
   final ValueNotifier<ChallengeRunStatus?> challengeStatusNotifier =
       ValueNotifier(null);
+  final ValueNotifier<List<bool>> challengeGoalsNotifier = ValueNotifier(
+    const [],
+  );
 
   bool _pointerDown = false;
   int? _activePointer;
@@ -139,18 +146,24 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     kilonovaCountNotifier.value = world.kilonovaCount;
     peakTierNotifier.value = world.highestTier;
     final peak = math.max(world.highestTier, scoreStore.highestTier);
-    bestElementNotifier.value =
-        peak > 0 ? ElementTier.fromTier(peak).symbol : '—';
+    bestElementNotifier.value = peak > 0
+        ? ElementTier.fromTier(peak).symbol
+        : '—';
     if (world.highestTier > 0) {
       lastUnlockNotifier.value = ElementTier.fromTier(world.highestTier);
     }
+    final tracker = world.challengeTracker;
+    challengeGoalsNotifier.value = tracker == null
+        ? const []
+        : List<bool>.from(tracker.goalFlags);
     _refreshLiveBest();
   }
 
   void _refreshLiveBest() {
     if (mode == GameMode.challenge) return;
     if (mode == GameMode.collapse) {
-      final currentBetter = !scoreStore.hasCollapseBest ||
+      final currentBetter =
+          !scoreStore.hasCollapseBest ||
           ScoreStore.compareCollapse(
                 aKilonovas: world.kilonovaCount,
                 aShots: world.shotCount,
@@ -169,8 +182,9 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       }
       return;
     }
-    highScoreNotifier.value =
-        scoreStore.displayedHighScore(scoreNotifier.value);
+    highScoreNotifier.value = scoreStore.displayedHighScore(
+      scoreNotifier.value,
+    );
   }
 
   Future<void> persistRun() async {
@@ -220,9 +234,17 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     firstRunGuide?.onRimPressure(normalized01);
   }
 
-  void _handleQueue(ElementTier current, ElementTier next) {
+  void _handleQueue(ElementTier? current, ElementTier? next) {
     currentShotNotifier.value = current;
     nextShotNotifier.value = next;
+  }
+
+  void _handleChallengeHoldStart() {
+    gameOverNotifier.value = true;
+  }
+
+  void _handleChallengeGoals(List<bool> met) {
+    challengeGoalsNotifier.value = met;
   }
 
   Future<void> _handleGameOver(RunEnding ending) async {
@@ -253,8 +275,9 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     highScoreNotifier.value = scoreStore.highScore;
     collapseBestNotifier.value = scoreStore.collapseBestLabel;
     if (scoreStore.highestTier > 0) {
-      bestElementNotifier.value =
-          ElementTier.fromTier(scoreStore.highestTier).symbol;
+      bestElementNotifier.value = ElementTier.fromTier(
+        scoreStore.highestTier,
+      ).symbol;
     }
     await RunSaveStore.clear(mode: mode, levelId: challengeLevel?.id);
   }
@@ -266,6 +289,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
 
   Future<void> _handleChallengeEnd(ChallengeRunStatus status) async {
     shotCountNotifier.value = world.shotCount;
+    gameOverNotifier.value = true;
     challengeStatusNotifier.value = status;
     if (status == ChallengeRunStatus.won) {
       final level = challengeLevel;
@@ -303,6 +327,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     shotCountNotifier.value = 0;
     kilonovaCountNotifier.value = 0;
     challengeStatusNotifier.value = null;
+    challengeGoalsNotifier.value = const [];
     highScoreNotifier.value = scoreStore.highScore;
     collapseBestNotifier.value = scoreStore.collapseBestLabel;
     camera.viewfinder.position = _cameraBase.clone();
@@ -325,7 +350,8 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       _shakeTime = math.max(0, _shakeTime - dt);
       final t = _shakeDuration <= 0 ? 0.0 : _shakeTime / _shakeDuration;
       final mag = _shakeIntensity * t * t;
-      camera.viewfinder.position = _cameraBase +
+      camera.viewfinder.position =
+          _cameraBase +
           Vector2(
             (math.Random().nextDouble() - 0.5) * 2 * mag,
             (math.Random().nextDouble() - 0.5) * 2 * mag,
@@ -336,9 +362,11 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
 
     if (!world.isLoaded || world.gameOver || !world.inputEnabled) return;
 
-    final left = _keys.contains(LogicalKeyboardKey.arrowLeft) ||
+    final left =
+        _keys.contains(LogicalKeyboardKey.arrowLeft) ||
         _keys.contains(LogicalKeyboardKey.keyA);
-    final right = _keys.contains(LogicalKeyboardKey.arrowRight) ||
+    final right =
+        _keys.contains(LogicalKeyboardKey.arrowRight) ||
         _keys.contains(LogicalKeyboardKey.keyD);
 
     if (left && !right) {

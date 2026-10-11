@@ -90,15 +90,17 @@ enum ElementTier {
   /// Precedence: same-tier self-pair before helium capture when both apply
   /// across different contacts — callers must sort candidate pairs accordingly.
   ///
-  /// [allowSameTier] disables [sameTierMerges] for Challenge `noSameTier`
-  /// levels. Pass via argument — never mutate static state (leaks across runs).
+  /// [allowSameTier] false is Challenge `noSameTier`: heavy self-pairs
+  /// (C+C and up) are inert. H+H and He+He stay legal — those are fuel, not
+  /// ladder skips. Pass via argument — never mutate static state.
   static ElementTier? mergeResult(
     ElementTier a,
     ElementTier b, {
     bool allowSameTier = true,
   }) {
     if (a == b) {
-      return allowSameTier ? sameTierMerges[a] : null;
+      if (!allowSameTier && a.isHeavy) return null;
+      return sameTierMerges[a];
     }
 
     if (a.isHelium) return heliumCapture(b);

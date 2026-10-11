@@ -2,8 +2,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../game/bottled_star_game.dart';
-import '../game/challenge/challenge_progress.dart';
-import '../game/challenge/challenge_run.dart';
 import '../game/challenge/level_spec.dart';
 import '../game/constants.dart';
 import '../game/element_art.dart';
@@ -21,6 +19,7 @@ import '../game/systems/sfx_controller.dart';
 import '../monetization/ad_playthrough.dart';
 import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
+import 'challenge_end_overlay.dart';
 import 'howto/how_to_play_overlay.dart';
 import 'leave_run_button.dart';
 import 'menu/display_name_dialog.dart';
@@ -373,10 +372,7 @@ class _HudScoreBlock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('SCORE', style: GameFonts.label()),
-            Text(
-              '$score',
-              style: GameFonts.score(weight: FontWeight.w500),
-            ),
+            Text('$score', style: GameFonts.score(weight: FontWeight.w500)),
             if (game.mode == GameMode.collapse) ...[
               const SizedBox(height: 10),
               ValueListenableBuilder<int>(
@@ -451,10 +447,7 @@ class _HudBestBlock extends StatelessWidget {
         ValueListenableBuilder<String>(
           valueListenable: game.bestElementNotifier,
           builder: (_, symbol, _) {
-            return Text(
-              'PEAK  $symbol',
-              style: GameFonts.label(fontSize: 12),
-            );
+            return Text('PEAK  $symbol', style: GameFonts.label(fontSize: 12));
           },
         ),
       ],
@@ -528,29 +521,36 @@ class _ChallengeGoalPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final level = game.challengeLevel;
     if (level == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('GOAL', style: GameFonts.label()),
-        for (final goal in level.goals)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              _describeChallengeGoal(goal),
-              style: GameFonts.ui(fontSize: 15, weight: FontWeight.w600),
+    return ValueListenableBuilder<List<bool>>(
+      valueListenable: game.challengeGoalsNotifier,
+      builder: (_, flags, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('GOAL', style: GameFonts.label()),
+            for (var i = 0; i < level.goals.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  _describeChallengeGoal(level.goals[i]),
+                  style: GameFonts.challengeGoal(
+                    complete: i < flags.length && flags[i],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<int>(
+              valueListenable: game.shotCountNotifier,
+              builder: (_, shots, _) {
+                return Text(
+                  'SHOTS  $shots / ${level.budgetShots}',
+                  style: GameFonts.label(fontSize: 12),
+                );
+              },
             ),
-          ),
-        const SizedBox(height: 8),
-        ValueListenableBuilder<int>(
-          valueListenable: game.shotCountNotifier,
-          builder: (_, shots, _) {
-            return Text(
-              'SHOTS  $shots / ${level.budgetShots}',
-              style: GameFonts.label(fontSize: 12),
-            );
-          },
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -585,7 +585,7 @@ String _describeChallengeGoal(LevelGoal goal) {
   return switch (goal) {
     ProduceGoal(:final element, :final count) =>
       'Produce $count× ${element.symbol}',
-    BoardUnderGoal(:final value) => 'Board under $value',
+    BoardUnderGoal(:final value) => 'Fewer than $value nuclei',
     SurviveGoal(:final shots) => 'Survive $shots shots',
     EliminateGoal(:final element) => 'Eliminate all ${element.symbol}',
     CauseSupernovaGoal(:final count) => 'Cause $count× supernova',
@@ -599,18 +599,21 @@ class ShotPreviewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ElementTier>(
+    return ValueListenableBuilder<ElementTier?>(
       valueListenable: game.currentShotNotifier,
       builder: (_, current, _) {
-        return ValueListenableBuilder<ElementTier>(
+        return ValueListenableBuilder<ElementTier?>(
           valueListenable: game.nextShotNotifier,
           builder: (_, next, _) {
+            if (current == null) return const SizedBox.shrink();
             return Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _ShotChip(label: 'NOW', tier: current, emphasis: true),
-                const SizedBox(width: 18),
-                _ShotChip(label: 'NEXT', tier: next, emphasis: false),
+                if (next != null) ...[
+                  const SizedBox(width: 18),
+                  _ShotChip(label: 'NEXT', tier: next, emphasis: false),
+                ],
               ],
             );
           },
@@ -699,111 +702,6 @@ class _ShotChip extends StatelessWidget {
           child: chipFace,
         ),
       ],
-    );
-  }
-}
-
-class ChallengeEndOverlay extends StatelessWidget {
-  const ChallengeEndOverlay({super.key, required this.game});
-
-  final BottledStarGame game;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<ChallengeRunStatus?>(
-      valueListenable: game.challengeStatusNotifier,
-      builder: (_, status, _) {
-        if (status == null) return const SizedBox.shrink();
-        return _ChallengeEndCard(game: game, status: status);
-      },
-    );
-  }
-}
-
-class _ChallengeEndCard extends StatelessWidget {
-  const _ChallengeEndCard({required this.game, required this.status});
-
-  final BottledStarGame game;
-  final ChallengeRunStatus status;
-
-  bool get _won => status == ChallengeRunStatus.won;
-
-  @override
-  Widget build(BuildContext context) {
-    final level = game.challengeLevel;
-    if (level == null) return const SizedBox.shrink();
-    final shots = game.world.shotCount;
-    final best = ChallengeProgress.instance.bestShots(level.id);
-    final outOfShots = shots >= level.budgetShots;
-    final screenW = MediaQuery.sizeOf(context).width;
-
-    return ColoredBox(
-      color: const Color(0x99050308),
-      child: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: screenW * 0.8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _won ? 'CLEARED' : 'FAILED',
-                    style: GameFonts.endingEyebrow(
-                      color: _won
-                          ? GameColors.chamberGlow
-                          : GameColors.rimWarning,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(level.name, style: GameFonts.endingTitle()),
-                  const SizedBox(height: 24),
-                  if (_won) ...[
-                    _StatLine(label: 'Shots used', value: '$shots'),
-                    const SizedBox(height: 10),
-                    _StatLine(label: 'Par', value: '${level.parShots}'),
-                    if (best != null) ...[
-                      const SizedBox(height: 10),
-                      _StatLine(label: 'Best', value: '$best'),
-                    ],
-                  ] else
-                    Text(
-                      outOfShots
-                          ? 'Out of shots.'
-                          : 'A constraint was broken.',
-                      textAlign: TextAlign.center,
-                      style: GameFonts.prose(
-                        fontSize: 14,
-                        color: GameColors.mutedText,
-                      ),
-                    ),
-                  const SizedBox(height: 36),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: game.restart,
-                      child: const Text('Retry'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'Level Select',
-                      style: GameFonts.ui(
-                        fontSize: 15,
-                        weight: FontWeight.w600,
-                        color: GameColors.mutedText,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

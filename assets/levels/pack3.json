@@ -5,13 +5,14 @@
     {
       "id": "p3_01",
       "name": "Clean Slate",
-      "blurb": "Three carbons. Walk every one of them up — leave none behind.",
+      "blurb": "Three carbons around a hydrogen pin. Walk every one of them up — leave none behind.",
 
       "seed": {
         "bodies": [
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.35 }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
@@ -40,10 +41,11 @@
     {
       "id": "p3_02",
       "name": "Housekeeping",
-      "blurb": "Five carbons this time. The board isn't clean until every one of them is gone.",
+      "blurb": "Five carbons around an iron post so they cannot pair. The board isn't clean until every one of them is gone.",
 
       "seed": {
         "bodies": [
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
           { "element": "C", "count": 5, "placement": "ring", "radiusFrac": 0.4, "phaseDeg": 0 }
         ],
         "baked": null
@@ -62,7 +64,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 12 }
+        { "type": "maxBodies", "value": 16 }
       ],
 
       "rules": { "remnants": false },
@@ -73,13 +75,14 @@
     {
       "id": "p3_03",
       "name": "Don't Look Away",
-      "blurb": "You can't hoard more than two heliums at once — every spare has to go somewhere. Make sure it's not into each other.",
+      "blurb": "Three carbons around a hydrogen pin. You can't hoard more than two heliums at once — every spare has to go somewhere. Make sure it's not into each other.",
 
       "seed": {
         "bodies": [
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.35 }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
@@ -109,13 +112,15 @@
     {
       "id": "p3_04",
       "name": "The Last One",
-      "blurb": "Four carbons. Two of them are close enough to solve for free — no helium required.",
+      "blurb": "Four carbons around a hydrogen pin. One pair is close enough to knock for free. The other two need helium.",
 
       "seed": {
         "bodies": [
-          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [70, 110] },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 300, "radiusFrac": 0.35 }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 85, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
@@ -144,14 +149,16 @@
     {
       "id": "p3_05",
       "name": "Full Sweep",
-      "blurb": "Five carbons, one close pair among them, helium that can't pile up. Clear the board.",
+      "blurb": "Five carbons around an iron post. One pair is close enough to knock. Helium can't pile up. Clear the board.",
 
       "seed": {
         "bodies": [
-          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [70, 110] },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.35 }
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 30, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 210, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 300, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
@@ -315,19 +322,22 @@
     {
       "id": "p3_10",
       "name": "Two Is Enough",
-      "blurb": "Two calciums to finish. Two carbons sitting close by that must never touch.",
+      "blurb": "Two calciums to finish. Two carbons on a hydrogen pin, opposite, that must never touch.",
 
       "seed": {
         "bodies": [
-          { "element": "Ca", "count": 2, "placement": "ring", "radiusFrac": 0.5, "phaseDeg": 0 },
-          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [70, 110] }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
 
       "queue": {
         "mode": "fixed",
-        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H", "He"],
+        "sequence": ["He", "H", "H", "He", "H", "H", "He", "H", "H", "He", "H", "H"],
         "visibleCount": 3
       },
 
@@ -524,12 +534,13 @@
     {
       "id": "p3_16",
       "name": "Vanishing Act",
-      "blurb": "Two carbons to clear. Two heliums, total, is all the ration allows.",
+      "blurb": "Two carbons on a hydrogen pin. Gravity will not pair them. Two heliums, total, is all the ration allows.",
 
       "seed": {
         "bodies": [
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.35 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.35 }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
@@ -594,12 +605,13 @@
     {
       "id": "p3_18",
       "name": "Rationed Cage",
-      "blurb": "Caged again. This time only two heliums are allowed to ever exist — nudging the wall is free, but don't waste a pairing.",
+      "blurb": "Iron wall, argon post. Helium that falls in climbs the post. Only two heliums are allowed to ever exist — nudging the wall is free, but don't waste a pairing.",
 
       "seed": {
         "bodies": [
-          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
-          { "element": "Fe", "count": 4, "placement": "ring", "radiusFrac": 0.47, "phaseDeg": 0 }
+          { "element": "Ar", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Fe", "count": 4, "placement": "ring", "radiusFrac": 0.52, "phaseDeg": 45 },
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.42 }
         ],
         "baked": null
       },
@@ -618,7 +630,7 @@
 
       "constraints": [
         { "type": "maxTotalProduced", "element": "He", "value": 2 },
-        { "type": "maxBodies", "value": 12 }
+        { "type": "maxBodies", "value": 16 }
       ],
 
       "rules": { "remnants": false },
@@ -664,20 +676,22 @@
     {
       "id": "p3_20",
       "name": "Everything",
-      "blurb": "One iron waiting, one calcium to finish, a decoy pair that's illegal to touch, and a ration that leaves no room for a wasted shot.",
+      "blurb": "Iron and calcium on a hydrogen pin, plus two carbons opposite that must never touch. The ration leaves no room for a wasted shot.",
 
       "seed": {
         "bodies": [
-          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4 },
-          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.4 },
-          { "element": "C", "count": 2, "placement": "cluster", "radiusFrac": 0.4, "arcDeg": [250, 290] }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
 
       "queue": {
         "mode": "fixed",
-        "sequence": ["H", "H", "He", "H", "H", "He"],
+        "sequence": ["He", "He", "H", "H", "H", "H"],
         "visibleCount": 3
       },
 

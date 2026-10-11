@@ -91,6 +91,23 @@ abstract final class GameFonts {
     );
   }
 
+  /// Challenge HUD goal line — gold glow once that goal is already met.
+  static TextStyle challengeGoal({required bool complete}) {
+    return TextStyle(
+      fontFamily: spaceGrotesk,
+      fontWeight: FontWeight.w600,
+      fontSize: 15,
+      color: complete ? GameColors.heliumAura : GameColors.scoreText,
+      height: 1.2,
+      shadows: complete
+          ? const [
+              Shadow(color: GameColors.chamberGlow, blurRadius: 14),
+              Shadow(color: GameColors.heliumAura, blurRadius: 6),
+            ]
+          : null,
+    );
+  }
+
   /// Ending / future codex body copy.
   static TextStyle prose({
     double fontSize = 14,
