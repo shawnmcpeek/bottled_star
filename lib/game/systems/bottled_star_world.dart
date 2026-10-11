@@ -790,11 +790,15 @@ class BottledStarWorld extends Forge2DWorld {
 
   /// Goals ([ProduceGoal] etc.) and the budget-exhausted loss are only
   /// evaluated once the board has been quiet for
-  /// [GameConstants.challengeSettleSeconds] — otherwise a shot still mid-air
-  /// could be judged before it has a chance to land.
+  /// [GameConstants.challengeSettleSeconds]. Quiet resets while anything is
+  /// still flying — the last-shot clock is not travel time.
   void _updateChallengeSettle(double dt) {
     final tracker = challengeTracker;
     if (tracker == null || tracker.status != ChallengeRunStatus.playing) {
+      return;
+    }
+    if (_challengeBoardInFlight()) {
+      _sinceLastChallengeShot = 0;
       return;
     }
     _sinceLastChallengeShot += dt;
@@ -807,6 +811,16 @@ class BottledStarWorld extends Forge2DWorld {
     if (tracker.status != ChallengeRunStatus.playing) {
       _endChallengeRun(tracker.status);
     }
+  }
+
+  bool _challengeBoardInFlight() {
+    final maxSpeed2 = GameConstants.challengeSettleSpeed *
+        GameConstants.challengeSettleSpeed;
+    for (final n in nuclei) {
+      if (!n.isMounted || n.pendingDestroy) continue;
+      if (n.body.linearVelocity.length2 > maxSpeed2) return true;
+    }
+    return false;
   }
 
   void _endChallengeRun(ChallengeRunStatus status) {

@@ -85,10 +85,19 @@ enum ElementTier {
     return ElementTier.fromTier(next);
   }
 
-  /// Returns the product of a legal merge, or null if inert.
+  /// Lower resolves first when several legal pairs touch in one step.
   ///
-  /// Precedence: same-tier self-pair before helium capture when both apply
-  /// across different contacts — callers must sort candidate pairs accordingly.
+  /// Heavy same-tier (C+C and up) still beats helium capture. Fuel same-tier
+  /// (H+H, He+He) does **not** — two heliums on a post must climb it, not
+  /// become carbon and steal both.
+  static int mergeResolvePriority(ElementTier a, ElementTier b) {
+    if (a == b && a.isHeavy && sameTierMerges.containsKey(a)) return 0;
+    final capture = a.isHelium ? heliumCapture(b) : b.isHelium ? heliumCapture(a) : null;
+    if (capture != null) return 1;
+    return 2;
+  }
+
+  /// Returns the product of a legal merge, or null if inert.
   ///
   /// [allowSameTier] false is Challenge `noSameTier`: heavy self-pairs
   /// (C+C and up) are inert. H+H and He+He stay legal — those are fuel, not

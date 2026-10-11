@@ -61,10 +61,16 @@ abstract final class GameConstants {
   static const double cameraWorldExtent =
       (chamberRadius + injectorOrbitGap + 40) * 2;
 
-  /// Challenge: seconds of no new shot before goals/budget are evaluated.
-  /// Gives an in-flight nucleus time to travel and merge before a budget
-  /// loss can be called.
+  /// Challenge: seconds the board must be quiet before goals/budget are
+  /// evaluated. Quiet means no nucleus faster than [challengeSettleSpeed] —
+  /// a wall-clock from the last shot is not travel time. A tap hydrogen
+  /// needs ~2s to cross the chamber; calling budget-loss at 1.2s from the
+  /// shot made Iron Wall fail after the iron already formed.
   static const double challengeSettleSeconds = 1.2;
+
+  /// Speed above this counts as in-flight. Tap injection is ~84; resting
+  /// piles stay well below.
+  static const double challengeSettleSpeed = 50;
 
   /// Challenge: beat after a win/fail so the board is visible before the card.
   static const double challengeResultHoldSeconds = 1.6;

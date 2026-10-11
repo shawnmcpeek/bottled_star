@@ -5,7 +5,7 @@
     {
       "id": "p2_01",
       "name": "Iron Wall",
-      "blurb": "Four irons around an argon post. Pair two hydrogens in a gap. Helium that falls in climbs the post, it does not turn it into iron. Two irons touching is still a supernova.",
+      "blurb": "Two hydrogens in opposite doors. Slot both. Each helium must climb the argon on its own. Let them meet and you get carbon, not iron.",
 
       "seed": {
         "bodies": [
@@ -17,7 +17,7 @@
             "radiusFrac": 0.0
           },
           {
-            "element": "Fe",
+            "element": "Si",
             "count": 4,
             "placement": "ring",
             "radiusFrac": 0.52,
@@ -29,6 +29,13 @@
             "placement": "point",
             "angleDeg": 90,
             "radiusFrac": 0.42
+          },
+          {
+            "element": "H",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 270,
+            "radiusFrac": 0.42
           }
         ],
         "baked": null
@@ -36,29 +43,32 @@
 
       "queue": {
         "mode": "fixed",
-        "sequence": ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H", "H"],
-        "visibleCount": 3
+        "sequence": ["H", "H"],
+        "visibleCount": 2
       },
 
-      "budget": { "shots": 12 },
+      "budget": { "shots": 2 },
 
       "goals": [
-        { "type": "produce", "element": "He", "count": 2 }
+        { "type": "produce", "element": "Fe", "count": 1 }
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 18 }
+        { "type": "neverProduce", "element": "C" },
+        { "type": "neverProduce", "element": "S" },
+        { "type": "noSameTier" },
+        { "type": "maxBodies", "value": 12 }
       ],
 
       "rules": { "remnants": false },
 
-      "par": { "shots": 9 }
+      "par": { "shots": 2 }
     },
 
     {
       "id": "p2_02",
       "name": "Second Door",
-      "blurb": "Neon inner ring, calcium outer ring, iron post so the gaps stay open. The gaps do not line up.",
+      "blurb": "Neon inner ring, calcium outer ring, iron post so the gaps stay open. The gaps do not line up. The hydrogen sits on the iron, not out at the rim.",
 
       "seed": {
         "bodies": [
@@ -88,7 +98,7 @@
             "count": 1,
             "placement": "point",
             "angleDeg": 90,
-            "radiusFrac": 0.55
+            "radiusFrac": 0.34
           }
         ],
         "baked": null

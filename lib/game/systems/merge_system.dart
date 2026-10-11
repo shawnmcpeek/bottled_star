@@ -90,11 +90,11 @@ class MergeSystem {
       return;
     }
 
-    // Same-tier before helium capture — larger gain, expected by the player.
     final batch = List<PendingMerge>.from(_queue)
       ..sort((x, y) {
-        if (x.isSameTier == y.isSameTier) return 0;
-        return x.isSameTier ? -1 : 1;
+        final px = ElementTier.mergeResolvePriority(x.a.tier, x.b.tier);
+        final py = ElementTier.mergeResolvePriority(y.a.tier, y.b.tier);
+        return px.compareTo(py);
       });
     _queue.clear();
 

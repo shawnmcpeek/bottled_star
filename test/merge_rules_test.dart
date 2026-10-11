@@ -92,6 +92,36 @@ void main() {
       );
     });
 
+    test('two heliums on a capturable post climb it, not carbon', () {
+      expect(
+        ElementTier.mergeResolvePriority(
+          ElementTier.helium,
+          ElementTier.argon,
+        ),
+        lessThan(
+          ElementTier.mergeResolvePriority(
+            ElementTier.helium,
+            ElementTier.helium,
+          ),
+        ),
+      );
+    });
+
+    test('heavy same-tier still beats helium capture', () {
+      expect(
+        ElementTier.mergeResolvePriority(
+          ElementTier.carbon,
+          ElementTier.carbon,
+        ),
+        lessThan(
+          ElementTier.mergeResolvePriority(
+            ElementTier.helium,
+            ElementTier.carbon,
+          ),
+        ),
+      );
+    });
+
     test('isSameTierMerge flags fusion pairs', () {
       expect(
         ElementTier.isSameTierMerge(ElementTier.silicon, ElementTier.silicon),
