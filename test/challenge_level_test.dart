@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
+import 'package:bottled_star/game/challenge/challenge_brief.dart';
 import 'package:bottled_star/game/challenge/challenge_progress.dart';
 import 'package:bottled_star/game/challenge/challenge_run.dart';
 import 'package:bottled_star/game/challenge/fixed_queue.dart';
 import 'package:bottled_star/game/challenge/level_library.dart';
 import 'package:bottled_star/game/challenge/level_spec.dart';
+import 'package:bottled_star/game/challenge/sweep_orbit.dart';
 import 'package:bottled_star/game/constants.dart';
 import 'package:bottled_star/game/element_tier.dart';
 import 'package:bottled_star/game/modes/game_mode.dart';
@@ -62,6 +65,7 @@ void main() {
     test('resolves periodic symbols', () {
       expect(ElementTier.fromSymbol('Si'), ElementTier.silicon);
       expect(ElementTier.fromSymbol('Fe'), ElementTier.iron);
+      expect(ElementTier.fromSymbol('Pb'), ElementTier.lead);
       expect(ElementTier.fromSymbol('H'), ElementTier.hydrogen);
       expect(ElementTier.fromSymbol('silicon'), isNull);
       expect(ElementTier.fromSymbol('Xx'), isNull);
@@ -81,6 +85,7 @@ void main() {
       expect(level.goals, hasLength(1));
       expect(level.constraints, hasLength(1));
       expect(level.rules.remnants, isFalse);
+      expect(level.rules.supernovaClears, isFalse);
       expect(level.seed.baked, isNull);
       expect(level.seed.bodies, hasLength(2));
     });
@@ -120,6 +125,124 @@ void main() {
       expect(bodies[1].element, ElementTier.helium);
     });
 
+    test('point seed may carry a sweep orbit', () {
+      final map = _exampleLevelMap();
+      ((map['seed'] as Map)['bodies'] as List).first['orbit'] = {
+        'sweepDeg': 80,
+        'periodSeconds': 3,
+      };
+      // example Ca is a point at 270 — valid
+      final level = LevelSpec.fromJson(map, pack: 1);
+      final bodies = level.resolveSeed(chamberRadius: 100);
+      final ca = bodies.firstWhere((b) => b.element == ElementTier.calcium);
+      expect(ca.orbit, isNotNull);
+      expect(ca.orbit!.radius, 72);
+      expect(ca.orbit!.periodSeconds, 3);
+      expect(ca.orbit!.halfSweepRad, closeTo(40 * math.pi / 180, 1e-9));
+      expect(ca.orbit!.angleAt(0), closeTo(ca.angle, 1e-9));
+    });
+  });
+
+  group('LevelSpec parse — orbit validation', () {
+    test('orbit on a ring is fatal', () {
+      final map = _exampleLevelMap();
+      ((map['seed'] as Map)['bodies'] as List)[1]['orbit'] = {
+        'sweepDeg': 80,
+        'periodSeconds': 3,
+      };
+      expect(
+        () => LevelSpec.fromJson(map, pack: 1),
+        throwsA(
+          isA<LevelParseException>().having(
+            (e) => e.message,
+            'message',
+            contains('placement "point"'),
+          ),
+        ),
+      );
+    });
+
+    test('full-circle sweep is fatal', () {
+      final map = _exampleLevelMap();
+      ((map['seed'] as Map)['bodies'] as List).first['orbit'] = {
+        'sweepDeg': 360,
+        'periodSeconds': 3,
+      };
+      expect(
+        () => LevelSpec.fromJson(map, pack: 1),
+        throwsA(
+          isA<LevelParseException>().having(
+            (e) => e.message,
+            'message',
+            contains('180'),
+          ),
+        ),
+      );
+    });
+  });
+
+  group("Don't Go In equator", () {
+    test('helium on lead clears the oxygens; helium on hydrogen does not', () {
+      const oR = 28.0;
+      const heR = 18.0;
+      const need = oR + heR;
+
+      double clearance(double hubR) {
+        final oDist = hubR + oR;
+        final heDist = hubR + heR;
+        return math.sqrt(oDist * oDist + heDist * heDist) - need;
+      }
+
+      expect(clearance(ElementTier.hydrogen.baseRadius), lessThan(10));
+      expect(clearance(ElementTier.lead.baseRadius), greaterThan(20));
+    });
+  });
+
+  group('Hold Your Fire window', () {
+    test('phaseDeg 90 starts at the plus end', () {
+      final orbit = SweepOrbit(
+        radius: 140,
+        centerRad: 90 * math.pi / 180,
+        halfSweepRad: 90 * math.pi / 180,
+        periodSeconds: 5,
+        phaseRad: math.pi / 2,
+      );
+      expect(orbit.angleAt(0), closeTo(math.pi, 1e-9));
+    });
+
+    test('pendulum starts closed and reaches each end once per period', () {
+      final orbit = SweepOrbit(
+        radius: 140,
+        centerRad: 0,
+        halfSweepRad: 0.5,
+        periodSeconds: 4,
+      );
+      expect(orbit.angleAt(0), closeTo(0, 1e-9));
+      expect(orbit.angleAt(1), closeTo(0.5, 1e-9));
+      expect(orbit.angleAt(2), closeTo(0, 1e-9));
+      expect(orbit.angleAt(3), closeTo(-0.5, 1e-9));
+    });
+
+    test('carbon sweep closes the arc at center and clears it at the ends', () {
+      const radius = 0.44 * GameConstants.chamberRadius;
+      const halfArc = 16.0 * math.pi / 180;
+      const halfSweep = 50.0 * math.pi / 180;
+      final halfBlocked = math.asin(
+        (ElementTier.carbon.baseRadius + ElementTier.helium.baseRadius) /
+            radius,
+      );
+      expect(halfBlocked, greaterThan(halfArc));
+      expect(halfSweep, greaterThan(halfArc + halfBlocked));
+      expect(
+        radius,
+        greaterThan(
+          ElementTier.iron.baseRadius + ElementTier.carbon.baseRadius,
+        ),
+      );
+    });
+  });
+
+  group('LevelSpec parse — leftover', () {
     test('seed may contain elements above maxInjectTier', () {
       final map = _exampleLevelMap();
       expect(() => LevelSpec.fromJson(map, pack: 1), returnsNormally);
@@ -392,6 +515,36 @@ void main() {
       expect(lib.nextAfter('p1_01')!.id, 'p1_02');
       expect(lib.nextAfter('p1_20')!.id, 'p2_01');
       expect(lib.nextAfter('p3_20'), isNull);
+
+      final hold = lib.require('p2_11');
+      expect(hold.name, 'Hold Your Fire');
+      final carbon = hold.resolveSeed().firstWhere(
+        (b) => b.element == ElementTier.carbon,
+      );
+      expect(carbon.orbit, isNotNull);
+      expect(carbon.orbit!.periodSeconds, 4);
+
+      final park = lib.require('p2_14');
+      final parkC = park.resolveSeed().firstWhere(
+        (b) => b.element == ElementTier.carbon,
+      );
+      expect(parkC.orbit, isNotNull);
+      expect(parkC.orbit!.phaseRad, closeTo(math.pi / 2, 1e-9));
+      expect(park.injectionArc, isNotNull);
+      expect(park.queue.sequence, [ElementTier.hydrogen]);
+
+      final clean = lib.require('p3_01');
+      expect(
+        clean.resolveSeed().where((b) => b.orbit != null),
+        hasLength(2),
+      );
+
+      final oneEach = lib.require('p2_19');
+      expect(oneEach.injectionArc, isNull);
+      final oneC = oneEach.resolveSeed().firstWhere(
+        (b) => b.element == ElementTier.carbon,
+      );
+      expect(oneC.orbit, isNotNull);
     });
   });
 
@@ -595,6 +748,7 @@ void main() {
       // Chain: Mg created then fused away before settle.
       tracker.onElementCreated(ElementTier.magnesium);
       expect(tracker.status, ChallengeRunStatus.lost);
+      expect(tracker.failMessage, 'Never produce Mg');
 
       // Subsequent settle / produce Fe must not resurrect the run.
       tracker.onElementCreated(ElementTier.iron);
@@ -648,6 +802,7 @@ void main() {
       );
       tracker.onBoardChanged(totalBodies: 3, countsByElement: const {});
       expect(tracker.status, ChallengeRunStatus.lost);
+      expect(tracker.failMessage, 'At most 2 nuclei');
     });
 
     test('eliminate wins only once live count reaches zero', () {
@@ -716,6 +871,27 @@ void main() {
 
       tracker.onElementCreated(ElementTier.helium);
       expect(tracker.status, ChallengeRunStatus.lost);
+      expect(tracker.failMessage, 'At most 2 He produced');
+    });
+  });
+
+  group('challenge brief', () {
+    test('shows neverProduce and noSameTier, hides maxBodies', () {
+      final map = _exampleLevelMap();
+      map['goals'] = [
+        {'type': 'produce', 'element': 'Ne', 'count': 1},
+      ];
+      map['constraints'] = [
+        {'type': 'neverProduce', 'element': 'Mg'},
+        {'type': 'noSameTier'},
+        {'type': 'maxBodies', 'value': 10},
+      ];
+      final level = LevelSpec.fromJson(map, pack: 1);
+      expect(challengeLevelSummary(level), contains('Produce 1× Ne'));
+      expect(challengeLevelSummary(level), contains('Never produce Mg'));
+      expect(challengeLevelSummary(level), contains('Heavy twins do not merge'));
+      expect(challengeLevelSummary(level), isNot(contains('nuclei')));
+      expect(playerFacingConstraintLines(level), isNot(contains('')));
     });
   });
 
@@ -789,6 +965,15 @@ void main() {
 
       expect(withRemnants.remnantsEnabled, isTrue);
       expect(without.remnantsEnabled, isFalse);
+    });
+
+    test('supernovaClears parses and defaults false', () {
+      final withClear = LevelSpec.fromJson({
+        ..._exampleLevelMap(),
+        'rules': {'remnants': false, 'supernovaClears': true},
+      }, pack: 1);
+      expect(withClear.supernovaClears, isTrue);
+      expect(_parseExample().supernovaClears, isFalse);
     });
   });
 

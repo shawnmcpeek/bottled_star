@@ -1,3 +1,4 @@
+import 'package:bottled_star/game/challenge/sweep_orbit.dart';
 import 'package:bottled_star/game/element_tier.dart';
 import 'package:bottled_star/game/modes/game_mode.dart';
 import 'package:bottled_star/game/systems/injection_queue.dart';
@@ -76,6 +77,53 @@ void main() {
         remnants: [],
       );
       expect(snap.isWorthSaving, isFalse);
+    });
+
+    test('round-trips a sweeping nucleus', () {
+      final snap = RunSnapshot(
+        mode: GameMode.challenge,
+        levelId: 'p2_11',
+        score: 0,
+        highestTier: 8,
+        shotCount: 1,
+        kilonovaCount: 0,
+        supernovaCount: 0,
+        injectorAngle: 0,
+        tiersCreated: {8, 2},
+        queue: const QueueSnapshot.fixed(
+          current: 1,
+          next: 1,
+          index: 1,
+        ),
+        nuclei: [
+          NucleusSnapshot(
+            tier: ElementTier.carbon.tier,
+            rimPressure: 0,
+            orbit: SweepOrbit(
+              radius: 140.8,
+              centerRad: 0,
+              halfSweepRad: 0.87,
+              periodSeconds: 4,
+              elapsed: 1.25,
+            ),
+            body: const BodySnapshot(
+              x: 140.8,
+              y: 0,
+              vx: 0,
+              vy: 40,
+              angle: 0,
+              angularVelocity: 0.3,
+            ),
+          ),
+        ],
+        remnants: const [],
+      );
+
+      final parsed = RunSnapshot.tryParse(snap.toJson());
+      expect(parsed, isNotNull);
+      expect(parsed!.nuclei.first.orbit, isNotNull);
+      expect(parsed.nuclei.first.orbit!.elapsed, closeTo(1.25, 1e-9));
+      expect(parsed.nuclei.first.orbit!.periodSeconds, 4);
     });
 
     test('rejects unknown schema versions', () {

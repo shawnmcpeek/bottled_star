@@ -96,7 +96,10 @@ void main() {
         for (final id in EndingMessages.milestoneOrder) id,
       }..remove('full_ladder');
       // Force element path by burning ending chance with fixed RNG after milestones.
-      final allTiers = {for (final t in ElementTier.values) t.tier};
+      final allTiers = {
+        for (final t in ElementTier.values)
+          if (!t.isHub) t.tier,
+      };
       final pick = EndingMessages.select(
         ctx: ctx(
           peak: ElementTier.iron.tier,

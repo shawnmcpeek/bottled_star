@@ -27,8 +27,7 @@ abstract final class GameConstants {
   static const double kRimDrainRate = 0.6;
   static const double kRimPressureLimit = 2.0;
 
-  static const double inertBumpImpulse = 180;
-  static const double mergePairCooldown = 0.05;
+  static const double inertBumpImpulse = 180;  static const double mergePairCooldown = 0.05;
   static const double mergeContactEpsilon = 2.0;
 
   /// Highest tier that can appear in the injector (neon). Never Fe / Ca / etc.
@@ -65,11 +64,14 @@ abstract final class GameConstants {
   /// evaluated. Quiet means no nucleus faster than [challengeSettleSpeed] —
   /// a wall-clock from the last shot is not travel time. A tap hydrogen
   /// needs ~2s to cross the chamber; calling budget-loss at 1.2s from the
-  /// shot made Iron Wall fail after the iron already formed.
-  static const double challengeSettleSeconds = 1.2;
+  /// shot made Iron Wall fail after the iron already formed. A knocked
+  /// oxygen slides around a lead hub into its twin below
+  /// [challengeSettleSpeed] for up to ~3s.
+  static const double challengeSettleSeconds = 3.0;
 
   /// Speed above this counts as in-flight. Tap injection is ~84; resting
-  /// piles stay well below.
+  /// piles stay well below. Bodies on a dynamic iron core jitter at 10–35
+  /// forever, so this cannot drop much lower.
   static const double challengeSettleSpeed = 50;
 
   /// Challenge: beat after a win/fail so the board is visible before the card.

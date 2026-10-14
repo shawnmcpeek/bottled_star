@@ -169,10 +169,8 @@ abstract final class EndingMessages {
       case 'new_best':
         return ctx.score > ctx.previousHighScore;
       case 'full_ladder':
-        return ctx.tiersCreatedThisRun.length >= ElementTier.values.length &&
-            ElementTier.values.every(
-              (t) => ctx.tiersCreatedThisRun.contains(t.tier),
-            );
+        final ladder = ElementTier.values.where((t) => !t.isHub);
+        return ladder.every((t) => ctx.tiersCreatedThisRun.contains(t.tier));
       default:
         return false;
     }

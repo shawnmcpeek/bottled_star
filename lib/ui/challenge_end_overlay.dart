@@ -102,7 +102,7 @@ class _ChallengeEndCardState extends State<_ChallengeEndCard> {
     if (level == null) return const SizedBox.shrink();
     final shots = widget.game.world.shotCount;
     final best = ChallengeProgress.instance.bestShots(level.id);
-    final outOfShots = shots >= level.budgetShots;
+    final failMessage = widget.game.world.challengeTracker?.failMessage;
     final screenW = MediaQuery.sizeOf(context).width;
     final accent = _won ? GameColors.chamberGlow : GameColors.rimWarning;
 
@@ -147,9 +147,8 @@ class _ChallengeEndCardState extends State<_ChallengeEndCard> {
                       Text(
                         _won
                             ? 'The vessel holds. Advance.'
-                            : (outOfShots
-                                  ? 'Out of shots. The ladder stops here.'
-                                  : 'A constraint broke. The vessel is lost.'),
+                            : (failMessage ??
+                                  'A constraint broke. The vessel is lost.'),
                         textAlign: TextAlign.center,
                         style: GameFonts.prose(
                           fontSize: 14,

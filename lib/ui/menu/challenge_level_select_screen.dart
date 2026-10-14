@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../game/challenge/challenge_brief.dart';
 import '../../game/challenge/challenge_progress.dart';
 import '../../game/challenge/level_library.dart';
 import '../../game/challenge/level_spec.dart';
@@ -163,7 +164,7 @@ class _LevelRow extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       unlocked
-                          ? _goalSummary(level)
+                          ? challengeLevelSummary(level)
                           : 'Locked — clear the previous level first',
                       style: GameFonts.prose(
                         fontSize: 13,
@@ -244,17 +245,3 @@ class _NumberBadge extends StatelessWidget {
   }
 }
 
-String _goalSummary(LevelSpec level) {
-  return level.goals.map(_describeGoal).join(' · ');
-}
-
-String _describeGoal(LevelGoal goal) {
-  return switch (goal) {
-    ProduceGoal(:final element, :final count) =>
-      'Produce $count× ${element.symbol}',
-    BoardUnderGoal(:final value) => 'Fewer than $value nuclei',
-    SurviveGoal(:final shots) => 'Survive $shots shots',
-    EliminateGoal(:final element) => 'Eliminate all ${element.symbol}',
-    CauseSupernovaGoal(:final count) => 'Cause $count× supernova',
-  };
-}

@@ -39,13 +39,14 @@ void main() {
       expect(SfxController.gameOverAsset, 'sfx/game_over.m4a');
     });
 
-    test('every mode has one asset per element tier', () {
+    test('every mode has one asset per ladder tier', () {
+      final ladder = ElementTier.values.where((t) => !t.isHub).toList();
       for (final mode in GameMode.values) {
         final paths = [
-          for (final tier in ElementTier.values)
+          for (final tier in ladder)
             SfxController.pluckAssetFor(mode: mode, tier: tier),
         ];
-        expect(paths.toSet(), hasLength(ElementTier.values.length));
+        expect(paths.toSet(), hasLength(ladder.length));
       }
     });
   });

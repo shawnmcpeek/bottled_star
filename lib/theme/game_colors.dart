@@ -36,6 +36,7 @@ abstract final class TierPalette {
     Color(0xFFA8286E), // Ar
     Color(0xFF8B2478), // Ca
     Color(0xFF6B1F6E), // Fe
+    Color(0xFF8A8A84), // Pb — ballast hub, not on the ladder
   ];
 
   static const List<Color> glows = [
@@ -50,6 +51,7 @@ abstract final class TierPalette {
     Color(0x44A8286E),
     Color(0x338B2478),
     Color(0x336B1F6E),
+    Color(0x448A8A84),
   ];
 
   static Color fillFor(int tier) => fills[tier.clamp(0, fills.length - 1)];

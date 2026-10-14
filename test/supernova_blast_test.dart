@@ -74,5 +74,35 @@ void main() {
       expect((45 * GameConstants.kEjectCredit).round(), 11);
       expect((1 * GameConstants.kEjectCredit).round(), 0);
     });
+
+    test('vaporizeAll ejects the outer push zone', () {
+      final vaporize = GameConstants.kVaporizeRadius;
+      expect(
+        SupernovaBlast.classify(
+          dist: vaporize * 1.5,
+          lobeFactor: 1.0,
+          softRoll: 0.0,
+        ),
+        'push',
+      );
+      expect(
+        SupernovaBlast.classify(
+          dist: vaporize * 1.5,
+          lobeFactor: 1.0,
+          softRoll: 0.0,
+          vaporizeAll: true,
+        ),
+        'eject',
+      );
+      expect(
+        SupernovaBlast.classify(
+          dist: GameConstants.kBlastRadius * 1.2,
+          lobeFactor: 1.0,
+          softRoll: 0.0,
+          vaporizeAll: true,
+        ),
+        'none',
+      );
+    });
   });
 }

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../constants.dart';
 import '../element_tier.dart';
 import 'fixed_queue.dart';
+import 'sweep_orbit.dart';
 
 /// Thrown when a pack or level fails strict validation.
 class LevelParseException implements Exception {
@@ -57,6 +58,12 @@ class LevelSpec {
       constraints.any((c) => c is NoSameTierConstraint);
 
   bool get remnantsEnabled => rules.remnants;
+
+  /// Challenge supernova ejects the whole blast radius, not just the core.
+  /// Use when a leftover light body after a broom would snipe the goal.
+  bool get supernovaClears => rules.supernovaClears;
+
+  bool get absorbMerges => rules.absorbMerges;
 
   FixedInjectionQueue createQueue() => queue.toFixedQueue();
 
@@ -305,12 +312,16 @@ class ResolvedBody {
     required this.x,
     required this.y,
     this.angle = 0,
+    this.orbit,
+    this.fixed = false,
   });
 
   final ElementTier element;
   final double x;
   final double y;
   final double angle;
+  final SweepOrbit? orbit;
+  final bool fixed;
 }
 
 enum SeedPlacement { point, ring, cluster }
@@ -325,6 +336,8 @@ class SeedBodySpec {
     this.radiusFrac,
     this.phaseDeg,
     this.arcDeg,
+    this.orbit,
+    this.fixed = false,
   });
 
   final ElementTier element;
@@ -334,6 +347,10 @@ class SeedBodySpec {
   final double? radiusFrac;
   final double? phaseDeg;
   final List<double>? arcDeg;
+  final SeedOrbitSpec? orbit;
+
+  /// Static body: never moves, so neighbors resting on it hold still.
+  final bool fixed;
 
   factory SeedBodySpec.fromJson(Map<String, dynamic> json, {String? levelId}) {
     final element = _reqElement(json, 'element', levelId: levelId);
@@ -398,6 +415,29 @@ class SeedBodySpec {
         _validateAngle(arcDeg[1], 'arcDeg[1]', levelId: levelId);
     }
 
+    SeedOrbitSpec? orbit;
+    final orbitRaw = json['orbit'];
+    if (orbitRaw != null) {
+      if (placement != SeedPlacement.point) {
+        throw LevelParseException(
+          'orbit is only valid on placement "point"',
+          levelId: levelId,
+        );
+      }
+      if (orbitRaw is! Map) {
+        throw LevelParseException('orbit must be an object', levelId: levelId);
+      }
+      orbit = _parseOrbit(Map<String, dynamic>.from(orbitRaw), levelId: levelId);
+    }
+
+    final fixed = json['fixed'] == true;
+    if (fixed && orbit != null) {
+      throw LevelParseException(
+        'a seed body cannot be both fixed and on an orbit',
+        levelId: levelId,
+      );
+    }
+
     return SeedBodySpec(
       element: element,
       count: count,
@@ -406,6 +446,8 @@ class SeedBodySpec {
       radiusFrac: radiusFrac,
       phaseDeg: phaseDeg,
       arcDeg: arcDeg,
+      orbit: orbit,
+      fixed: fixed,
     );
   }
 
@@ -416,12 +458,25 @@ class SeedBodySpec {
     switch (placement) {
       case SeedPlacement.point:
         final rad = _degToRad(angleDeg!);
+        final sweep = orbit;
+        final path = sweep == null
+            ? null
+            : SweepOrbit(
+                radius: r,
+                centerRad: rad,
+                halfSweepRad: _degToRad(sweep.sweepDeg) / 2,
+                periodSeconds: sweep.periodSeconds,
+                phaseRad: _degToRad(sweep.phaseDeg),
+              );
+        final a = path?.angleAt(0) ?? rad;
         return [
           ResolvedBody(
             element: element,
-            x: math.cos(rad) * r,
-            y: math.sin(rad) * r,
-            angle: rad,
+            x: math.cos(a) * r,
+            y: math.sin(a) * r,
+            angle: a,
+            orbit: path,
+            fixed: fixed,
           ),
         ];
       case SeedPlacement.ring:
@@ -435,6 +490,7 @@ class SeedBodySpec {
               x: math.cos(a) * r,
               y: math.sin(a) * r,
               angle: a,
+              fixed: fixed,
             ),
           );
         }
@@ -454,6 +510,7 @@ class SeedBodySpec {
               x: math.cos(a) * r,
               y: math.sin(a) * r,
               angle: a,
+              fixed: fixed,
             ),
           );
         }
@@ -570,15 +627,34 @@ class QueueSpec {
 
 @immutable
 class LevelRules {
-  const LevelRules({this.remnants = false});
+  const LevelRules({
+    this.remnants = false,
+    this.supernovaClears = false,
+    this.absorbMerges = false,
+  });
 
   final bool remnants;
+  final bool supernovaClears;
+
+  /// The lighter body is absorbed into the heavier one instead of both
+  /// meeting in the middle, so a product forms where its target sat.
+  final bool absorbMerges;
 
   factory LevelRules.fromJson(Map<String, dynamic> json, {String? levelId}) {
     final remnants = json.containsKey('remnants')
         ? _reqBool(json, 'remnants', levelId: levelId)
         : false;
-    return LevelRules(remnants: remnants);
+    final supernovaClears = json.containsKey('supernovaClears')
+        ? _reqBool(json, 'supernovaClears', levelId: levelId)
+        : false;
+    final absorbMerges = json.containsKey('absorbMerges')
+        ? _reqBool(json, 'absorbMerges', levelId: levelId)
+        : false;
+    return LevelRules(
+      remnants: remnants,
+      supernovaClears: supernovaClears,
+      absorbMerges: absorbMerges,
+    );
   }
 }
 
@@ -843,6 +919,35 @@ void _validateAngle(double deg, String label, {String? levelId}) {
       levelId: levelId,
     );
   }
+}
+
+SeedOrbitSpec _parseOrbit(
+  Map<String, dynamic> json, {
+  String? levelId,
+}) {
+  final sweepDeg = _reqDouble(json, 'sweepDeg', levelId: levelId);
+  if (sweepDeg <= 0 || sweepDeg > 180) {
+    throw LevelParseException(
+      'orbit.sweepDeg must be in (0, 180] — not a full 360',
+      levelId: levelId,
+    );
+  }
+  final periodSeconds = _reqDouble(json, 'periodSeconds', levelId: levelId);
+  if (periodSeconds <= 0) {
+    throw LevelParseException(
+      'orbit.periodSeconds must be > 0',
+      levelId: levelId,
+    );
+  }
+  final phaseDeg = json.containsKey('phaseDeg')
+      ? _reqDouble(json, 'phaseDeg', levelId: levelId)
+      : 0.0;
+  _validateAngle(phaseDeg, 'orbit.phaseDeg', levelId: levelId);
+  return SeedOrbitSpec(
+    sweepDeg: sweepDeg,
+    periodSeconds: periodSeconds,
+    phaseDeg: phaseDeg,
+  );
 }
 
 double _degToRad(double deg) => deg * math.pi / 180.0;

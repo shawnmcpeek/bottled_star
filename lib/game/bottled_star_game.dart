@@ -30,7 +30,6 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
          world: BottledStarWorld(
            mode: mode,
            challengeLevel: challengeLevel,
-           skipInitialChallengeSetup: resumeSavedRun,
          ),
          gravity: Vector2.zero(),
          zoom: 1,
@@ -48,7 +47,8 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
       ..onRimPressure = _handleRimPressure
       ..onChallengeHoldStart = _handleChallengeHoldStart
       ..onChallengeGoals = _handleChallengeGoals
-      ..onChallengeEnd = _handleChallengeEnd;
+      ..onChallengeEnd = _handleChallengeEnd
+      ..onBoardReady = _syncHudFromWorld;
   }
 
   final ScoreStore scoreStore;
@@ -108,16 +108,10 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
     collapseBestNotifier.value = scoreStore.collapseBestLabel;
 
     if (resumeSavedRun) {
-      final snap = await RunSaveStore.load(
+      world.pendingSnapshot = await RunSaveStore.load(
         mode: mode,
         levelId: challengeLevel?.id,
       );
-      if (snap != null) {
-        world.applySnapshot(snap);
-        _syncHudFromWorld();
-      } else if (challengeLevel != null) {
-        world.setupChallenge();
-      }
     }
 
     camera.viewfinder.anchor = Anchor.center;
@@ -189,6 +183,7 @@ class BottledStarGame extends Forge2DGame<BottledStarWorld>
 
   Future<void> persistRun() async {
     if (_leftRun) return;
+    if (!world.isLoaded) return;
     if (world.gameOver) {
       await RunSaveStore.clear(mode: mode, levelId: challengeLevel?.id);
       return;

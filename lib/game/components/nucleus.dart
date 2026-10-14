@@ -7,6 +7,7 @@ import 'package:flutter/painting.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
 import '../bottled_star_game.dart';
+import '../challenge/sweep_orbit.dart';
 import '../constants.dart';
 import '../element_art.dart';
 import '../element_tier.dart';
@@ -26,10 +27,15 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     Vector2? initialVelocity,
     this.initialAngle = 0,
     this.initialAngularVelocity = 0,
+    this.orbit,
+    this.fixed = false,
   })  : _spawnPosition = spawnPosition.clone(),
         _initialVelocity = initialVelocity?.clone(),
         // Smaller tiers paint above larger ones so wedged lights stay readable.
-        super(renderBody: false, priority: 100 - tier.tier);
+        super(
+          renderBody: false,
+          priority: tier.isHub ? 0 : 100 - tier.tier,
+        );
 
   ElementTier tier;
   final Vector2 _spawnPosition;
@@ -39,6 +45,12 @@ class Nucleus extends BodyComponent with ContactCallbacks {
   final MergeRequest onMergeRequest;
   final bool freshFromMerge;
   final bool asProjectile;
+  final SweepOrbit? orbit;
+
+  /// Seeded static body (lead hubs are always static).
+  final bool fixed;
+
+  bool get isOrbiting => orbit != null;
 
   bool pendingDestroy = false;
   double rimPressure = 0;
@@ -68,13 +80,17 @@ class Nucleus extends BodyComponent with ContactCallbacks {
   Body createBody() {
     final shape = CircleShape()..radius = effectiveRadius;
     final bodyDef = BodyDef(
-      type: BodyType.dynamic,
+      type: orbit != null
+          ? BodyType.kinematic
+          : tier.isHub || fixed
+          ? BodyType.static
+          : BodyType.dynamic,
       position: _spawnPosition,
       angle: initialAngle,
       userData: this,
       linearDamping: GameConstants.linearDamping,
       angularDamping: GameConstants.angularDamping,
-      bullet: asProjectile,
+      bullet: asProjectile || orbit != null,
       linearVelocity: _initialVelocity ?? Vector2.zero(),
       angularVelocity: initialAngularVelocity,
     );
@@ -95,8 +111,22 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     }
   }
 
+  /// Drive a seeded pendulum. Call before the physics step.
+  void advanceOrbit(double dt) {
+    final path = orbit;
+    if (path == null || pendingDestroy) return;
+    path.advance(dt);
+    final a = path.angle;
+    final omega = path.angularVelocity;
+    final pos = Vector2(math.cos(a) * path.radius, math.sin(a) * path.radius);
+    final vel = Vector2(-math.sin(a), math.cos(a)) * (path.radius * omega);
+    body.setTransform(pos, a);
+    body.linearVelocity = vel;
+    body.angularVelocity = omega;
+  }
+
   void applyRadialGravity() {
-    if (pendingDestroy) return;
+    if (pendingDestroy || orbit != null) return;
     final toCenter = -body.position;
     final dist = toCenter.length;
     if (dist < 0.001) return;
@@ -143,6 +173,10 @@ class Nucleus extends BodyComponent with ContactCallbacks {
     }
 
     if (_inertCooldown > 0 || other._inertCooldown > 0) return;
+    if (gameWorld is BottledStarWorld &&
+        (gameWorld.challengeLevel?.absorbMerges ?? false)) {
+      return;
+    }
     _inertCooldown = 0.15;
     other._inertCooldown = 0.15;
 

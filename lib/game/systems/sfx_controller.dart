@@ -57,7 +57,7 @@ class SfxController {
   static List<String> get _allPluckAssets => [
     for (final mode in GameMode.values)
       for (final tier in ElementTier.values)
-        pluckAssetFor(mode: mode, tier: tier),
+        if (!tier.isHub) pluckAssetFor(mode: mode, tier: tier),
   ];
 
   /// 0..1 master SFX level (applied relative to pluck/spring gains).

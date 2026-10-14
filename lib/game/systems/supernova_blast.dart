@@ -18,6 +18,8 @@ class SupernovaBlast extends PositionComponent {
     required BottledStarWorld gameWorld,
     math.Random? random,
     double? blastAxis,
+    bool vaporizeAll = false,
+    bool symmetric = false,
   }) {
     final rng = random ?? math.Random();
     return SupernovaBlast._(
@@ -25,6 +27,8 @@ class SupernovaBlast extends PositionComponent {
       gameWorld: gameWorld,
       random: rng,
       blastAxis: blastAxis ?? rng.nextDouble() * 2 * math.pi,
+      vaporizeAll: vaporizeAll,
+      symmetric: symmetric,
     );
   }
 
@@ -33,6 +37,8 @@ class SupernovaBlast extends PositionComponent {
     required this.gameWorld,
     required this.random,
     required this.blastAxis,
+    required this.vaporizeAll,
+    required this.symmetric,
   })  : origin = origin.clone(),
         super(
           position: origin.clone(),
@@ -44,6 +50,16 @@ class SupernovaBlast extends PositionComponent {
   final BottledStarWorld gameWorld;
   final math.Random random;
   final double blastAxis;
+  final bool vaporizeAll;
+
+  /// Challenge: round shell with a hard vaporize edge, so the same board and
+  /// the same shot always blast the same way.
+  final bool symmetric;
+
+  double get _asymmetry => symmetric ? 0.0 : GameConstants.kAsymmetry;
+
+  double _lobeAt(Vector2 pos) =>
+      symmetric ? 1.0 : lobe(pos, origin, blastAxis);
 
   double _shellT = 0;
   final Set<Nucleus> _processed = {};
@@ -74,14 +90,23 @@ class SupernovaBlast extends PositionComponent {
   }
 
   /// Pure classifier for tests: `eject`, `push`, or `none`.
+  ///
+  /// [vaporizeAll] is Challenge `rules.supernovaClears`: anything inside the
+  /// lobed blast radius is ejected, so a leftover oxygen cannot sit in the
+  /// outer push zone as a free capture.
   static String classify({
     required double dist,
     required double lobeFactor,
     required double softRoll,
+    bool vaporizeAll = false,
   }) {
     final vaporizeAt = GameConstants.kVaporizeRadius * lobeFactor;
     final soft = GameConstants.kSoftEdge;
     if (dist < vaporizeAt * (1 - soft)) return 'eject';
+    if (vaporizeAll) {
+      if (dist < GameConstants.kBlastRadius * lobeFactor) return 'eject';
+      return 'none';
+    }
     if (dist < vaporizeAt * (1 + soft)) {
       final band = (dist - vaporizeAt * (1 - soft)) /
           (2 * soft * vaporizeAt);
@@ -106,7 +131,7 @@ class SupernovaBlast extends PositionComponent {
       final pos = n.body.position;
       final delta = pos - origin;
       final dist = delta.length;
-      final lobeFactor = lobe(pos, origin, blastAxis);
+      final lobeFactor = _lobeAt(pos);
 
       // Shell front is itself lobed — strong side reaches farther first.
       if (dist > shellBase * lobeFactor) continue;
@@ -116,7 +141,8 @@ class SupernovaBlast extends PositionComponent {
       final action = classify(
         dist: dist,
         lobeFactor: lobeFactor,
-        softRoll: random.nextDouble(),
+        softRoll: symmetric ? 0.5 : random.nextDouble(),
+        vaporizeAll: vaporizeAll,
       );
 
       if (action == 'eject') {
@@ -138,7 +164,7 @@ class SupernovaBlast extends PositionComponent {
         final pos = r.body.position;
         final delta = pos - origin;
         final dist = delta.length;
-        final lobeFactor = lobe(pos, origin, blastAxis);
+        final lobeFactor = _lobeAt(pos);
         if (dist > shellBase * lobeFactor) continue;
         _processedRemnants.add(r);
         if (dist < GameConstants.kBlastRadius * lobeFactor) {
@@ -223,7 +249,7 @@ class SupernovaBlast extends PositionComponent {
     for (var i = 0; i <= segments; i++) {
       final angle = i * 2 * math.pi / segments;
       final lobeFactor =
-          1.0 + GameConstants.kAsymmetry * math.cos(angle - blastAxis);
+          1.0 + _asymmetry * math.cos(angle - blastAxis);
       final r = base * lobeFactor;
       final x = math.cos(angle) * r;
       final y = math.sin(angle) * r;

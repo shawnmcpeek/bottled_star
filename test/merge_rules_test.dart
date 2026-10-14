@@ -82,6 +82,24 @@ void main() {
       );
     });
 
+    test('lead hub is inert to helium, hydrogen, and itself', () {
+      expect(
+        ElementTier.mergeResult(ElementTier.helium, ElementTier.lead),
+        isNull,
+      );
+      expect(
+        ElementTier.mergeResult(ElementTier.hydrogen, ElementTier.lead),
+        isNull,
+      );
+      expect(
+        ElementTier.mergeResult(ElementTier.lead, ElementTier.lead),
+        isNull,
+      );
+      expect(ElementTier.fromSymbol('Pb'), ElementTier.lead);
+      expect(ElementTier.lead.isHub, isTrue);
+      expect(ElementTier.lead.isHeavy, isFalse);
+    });
+
     test('iron never merges with helium', () {
       expect(
         ElementTier.mergeResult(

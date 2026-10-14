@@ -12,7 +12,9 @@ enum ElementTier {
   sulfur(7, 'S', 'Sulfur', 58, 32, 28),
   argon(8, 'Ar', 'Argon', 68, 40, 36),
   calcium(9, 'Ca', 'Calcium', 80, 40, 45),
-  iron(10, 'Fe', 'Iron', 94, 56, 100);
+  iron(10, 'Fe', 'Iron', 94, 56, 100),
+  /// Seed-only hub. Not on the H→Fe ladder. Small, dense, helium-inert.
+  lead(11, 'Pb', 'Lead', 40, 207, 0);
 
   const ElementTier(
     this.tier,
@@ -43,13 +45,15 @@ enum ElementTier {
   bool get isHelium => this == ElementTier.helium;
   bool get isHydrogen => this == ElementTier.hydrogen;
   bool get isIron => this == ElementTier.iron;
-  bool get isHeavy => tier >= ElementTier.carbon.tier;
+  bool get isHub => this == ElementTier.lead;
+  bool get isHeavy => !isHub && tier >= ElementTier.carbon.tier;
 
   double get relativeDensity =>
       atomicMass / 4.0; // reference = helium
 
   /// Fixture density for Box2D — compressed into a 4× band.
   double get fixtureDensity {
+    if (isHub) return 4.0;
     final t = tier / ElementTier.iron.tier;
     return 1.0 + t * 3.0;
   }
@@ -79,7 +83,7 @@ enum ElementTier {
       a == b && sameTierMerges.containsKey(a);
 
   static ElementTier? heliumCapture(ElementTier other) {
-    if (!other.isHeavy || other.isIron) return null;
+    if (other.isHub || other.isIron || !other.isHeavy) return null;
     final next = other.tier + 1;
     if (next > ElementTier.iron.tier) return null;
     return ElementTier.fromTier(next);

@@ -5,6 +5,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import '../collapse/remnant_system.dart';
 import '../challenge/challenge_run.dart';
 import '../challenge/level_spec.dart';
+import '../challenge/sweep_orbit.dart';
 import '../components/chamber.dart';
 import '../components/effects.dart';
 import '../components/injector.dart';
@@ -41,7 +42,6 @@ class BottledStarWorld extends Forge2DWorld {
   BottledStarWorld({
     this.mode = GameMode.classic,
     this.challengeLevel,
-    this.skipInitialChallengeSetup = false,
     ScoreCallback? onScore,
     GameOverCallback? onGameOver,
     TierCallback? onTierReached,
@@ -55,6 +55,7 @@ class BottledStarWorld extends Forge2DWorld {
     VoidGameCallback? onChallengeHoldStart,
     ChallengeGoalsCallback? onChallengeGoals,
     ChallengeEndCallback? onChallengeEnd,
+    VoidGameCallback? onBoardReady,
   }) : onScore = onScore ?? ((_, _) {}),
        onGameOver = onGameOver ?? ((_) {}),
        onTierReached = onTierReached ?? ((_) {}),
@@ -68,6 +69,7 @@ class BottledStarWorld extends Forge2DWorld {
        onChallengeHoldStart = onChallengeHoldStart ?? (() {}),
        onChallengeGoals = onChallengeGoals ?? ((_) {}),
        onChallengeEnd = onChallengeEnd ?? ((_) {}),
+       onBoardReady = onBoardReady ?? (() {}),
        allowSameTierMerges = !(challengeLevel?.noSameTier ?? false),
        injectionQueue = challengeLevel?.createQueue() ?? InjectionQueue(),
        super(gravity: Vector2.zero());
@@ -77,9 +79,10 @@ class BottledStarWorld extends Forge2DWorld {
   /// Set for Challenge runs. Classic / Collapse leave this null.
   final LevelSpec? challengeLevel;
 
-  /// When true, [onLoad] skips seeding the Challenge board so a saved run
-  /// can be applied instead.
-  final bool skipInitialChallengeSetup;
+  /// Stashed by the game during its [onLoad] so this world can restore after
+  /// chamber / injector exist. Flame does not load the world until the first
+  /// `update` after `Game.onLoad`.
+  RunSnapshot? pendingSnapshot;
 
   /// When false, [ElementTier.sameTierMerges] is disabled for this world.
   /// Defaults true; Challenge `noSameTier` flips it for that level only.
@@ -98,8 +101,9 @@ class BottledStarWorld extends Forge2DWorld {
   VoidGameCallback onChallengeHoldStart;
   ChallengeGoalsCallback onChallengeGoals;
   ChallengeEndCallback onChallengeEnd;
+  VoidGameCallback onBoardReady;
 
-  late final MergeSystem mergeSystem;
+  late final MergeSystem mergeSystem = MergeSystem(this);
   final InjectionSource injectionQueue;
   late final ChamberWall chamber;
   final Injector injector = Injector();
@@ -177,7 +181,6 @@ class BottledStarWorld extends Forge2DWorld {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    mergeSystem = MergeSystem(this);
     injectionQueue.reset();
 
     // Collapse packs heavy remnants against light nuclei — give the solver
@@ -208,13 +211,18 @@ class BottledStarWorld extends Forge2DWorld {
     await add(injector);
     _publishQueue();
 
-    if (!skipInitialChallengeSetup) {
+    final snap = pendingSnapshot;
+    pendingSnapshot = null;
+    if (snap != null) {
+      applySnapshot(snap);
+    } else {
       setupChallenge();
     }
 
     mergeSystem.scanTouchingPairs();
     mergeSystem.resolve();
     _publishChallengeGoals();
+    onBoardReady();
   }
 
   /// Seed starting nuclei, arm the goal/constraint tracker, and clamp the
@@ -237,6 +245,8 @@ class BottledStarWorld extends Forge2DWorld {
         tier: body.element,
         position: Vector2(body.x, body.y),
         countsAsChallengeProduced: false,
+        orbit: body.orbit,
+        fixed: body.fixed,
       );
     }
 
@@ -428,6 +438,8 @@ class BottledStarWorld extends Forge2DWorld {
             NucleusSnapshot(
               tier: n.tier.tier,
               rimPressure: n.rimPressure,
+              orbit: n.orbit?.copy(),
+              fixed: n.fixed,
               body: BodySnapshot(
                 x: n.body.position.x,
                 y: n.body.position.y,
@@ -561,6 +573,8 @@ class BottledStarWorld extends Forge2DWorld {
         angularVelocity: n.body.angularVelocity,
         rimPressure: n.rimPressure,
         countsAsChallengeProduced: false,
+        orbit: n.orbit?.copy(),
+        fixed: n.fixed,
       );
     }
 
@@ -604,6 +618,8 @@ class BottledStarWorld extends Forge2DWorld {
     double angularVelocity = 0,
     double rimPressure = 0,
     bool countsAsChallengeProduced = true,
+    SweepOrbit? orbit,
+    bool fixed = false,
   }) {
     late Nucleus nucleus;
     nucleus = Nucleus(
@@ -615,6 +631,8 @@ class BottledStarWorld extends Forge2DWorld {
       initialAngle: angle,
       initialAngularVelocity: angularVelocity,
       onMergeRequest: (a, b) => mergeSystem.request(a, b),
+      orbit: orbit,
+      fixed: fixed,
     );
     nucleus.rimPressure = rimPressure;
     nuclei.add(nucleus);
@@ -635,6 +653,7 @@ class BottledStarWorld extends Forge2DWorld {
   }
 
   void onElementCreated(ElementTier tier) {
+    if (tier.isHub) return;
     _noteTierCreated(tier);
     if (tier.tier > highestTier) {
       highestTier = tier.tier;
@@ -647,6 +666,7 @@ class BottledStarWorld extends Forge2DWorld {
   }
 
   void _noteTierCreated(ElementTier tier) {
+    if (tier.isHub) return;
     tiersCreatedThisRun.add(tier.tier);
   }
 
@@ -727,7 +747,9 @@ class BottledStarWorld extends Forge2DWorld {
     final holdingChallengeResult = _pendingChallengeEnd != null;
     if (physicsEnabled && (!gameOver || holdingChallengeResult)) {
       for (final n in nuclei) {
-        if (n.isMounted) n.applyRadialGravity();
+        if (!n.isMounted) continue;
+        n.advanceOrbit(dt);
+        n.applyRadialGravity();
       }
       if (remnantSystem != null) {
         remnantSystem!.applyGravity();
@@ -818,6 +840,7 @@ class BottledStarWorld extends Forge2DWorld {
         GameConstants.challengeSettleSpeed;
     for (final n in nuclei) {
       if (!n.isMounted || n.pendingDestroy) continue;
+      if (n.isOrbiting) continue;
       if (n.body.linearVelocity.length2 > maxSpeed2) return true;
     }
     return false;
@@ -867,6 +890,7 @@ class BottledStarWorld extends Forge2DWorld {
 
       if (n.rimPressure >= GameConstants.kRimPressureLimit) {
         if (challengeLevel != null) {
+          challengeTracker?.loseFromRim();
           _endChallengeRun(ChallengeRunStatus.lost);
         } else {
           _beginRunEnding();
@@ -937,7 +961,12 @@ class BottledStarWorld extends Forge2DWorld {
     HapticsController.instance.playBlast();
     // ignore: unawaited_futures
     AchievementHooks.onSupernovaBlast();
-    add(SupernovaBlast(origin: origin, gameWorld: this));
+    add(SupernovaBlast(
+      origin: origin,
+      gameWorld: this,
+      vaporizeAll: challengeLevel?.supernovaClears ?? false,
+      symmetric: challengeLevel != null,
+    ));
 
     chamber.flare = 1.0;
     add(ScreenFlash(life: GameConstants.kSupernovaFlashSeconds));

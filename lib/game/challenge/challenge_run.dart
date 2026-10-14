@@ -1,4 +1,5 @@
 import '../element_tier.dart';
+import 'challenge_brief.dart';
 import 'level_spec.dart';
 
 enum ChallengeRunStatus { playing, won, lost }
@@ -23,6 +24,10 @@ class ChallengeRunTracker {
   final bool remnantsEnabled;
 
   ChallengeRunStatus status = ChallengeRunStatus.playing;
+
+  /// Set when [status] becomes [ChallengeRunStatus.lost]. Shown on the fail
+  /// card so a leftover shot budget is not reported as "out of shots."
+  String? failMessage;
 
   /// Cumulative creations this run (not simultaneous board occupancy).
   final Map<ElementTier, int> produced = {};
@@ -49,13 +54,13 @@ class ChallengeRunTracker {
 
     for (final c in spec.constraints) {
       if (c is NeverProduceConstraint && c.element == tier) {
-        status = ChallengeRunStatus.lost;
+        _lose(describeChallengeConstraint(c, includeSeatbelts: true));
         return;
       }
       if (c is MaxTotalProducedConstraint &&
           c.element == tier &&
           produced[tier]! > c.value) {
-        status = ChallengeRunStatus.lost;
+        _lose(describeChallengeConstraint(c, includeSeatbelts: true));
         return;
       }
     }
@@ -78,12 +83,12 @@ class ChallengeRunTracker {
       switch (c) {
         case MaxBodiesConstraint(:final value):
           if (totalBodies > value) {
-            status = ChallengeRunStatus.lost;
+            _lose(describeChallengeConstraint(c, includeSeatbelts: true));
             return;
           }
         case MaxOfElementConstraint(:final element, :final value):
           if ((countsByElement[element] ?? 0) > value) {
-            status = ChallengeRunStatus.lost;
+            _lose(describeChallengeConstraint(c, includeSeatbelts: true));
             return;
           }
         case NeverProduceConstraint():
@@ -105,6 +110,17 @@ class ChallengeRunTracker {
     this.shotsFired = shotsFired;
     this.supernovaCount = supernovaCount;
     status = ChallengeRunStatus.playing;
+    failMessage = null;
+  }
+
+  void loseFromRim() {
+    _lose('The rim did not hold.');
+  }
+
+  void _lose(String message) {
+    if (status != ChallengeRunStatus.playing) return;
+    status = ChallengeRunStatus.lost;
+    failMessage = message;
   }
 
   void onShotFired() {
@@ -130,7 +146,7 @@ class ChallengeRunTracker {
     if (shotsFired <= 0) return false;
 
     if (shotsFired >= spec.budgetShots && !_goalsSatisfied(boardBodies)) {
-      status = ChallengeRunStatus.lost;
+      _lose('Out of shots. The ladder stops here.');
       return true;
     }
 

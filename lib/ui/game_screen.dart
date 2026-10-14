@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../game/bottled_star_game.dart';
+import '../game/challenge/challenge_brief.dart';
 import '../game/challenge/level_spec.dart';
 import '../game/constants.dart';
 import '../game/element_art.dart';
@@ -532,12 +533,13 @@ class _ChallengeGoalPanel extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  _describeChallengeGoal(level.goals[i]),
+                  describeChallengeGoal(level.goals[i]),
                   style: GameFonts.challengeGoal(
                     complete: i < flags.length && flags[i],
                   ),
                 ),
               ),
+            ..._challengeRuleLines(level),
             const SizedBox(height: 8),
             ValueListenableBuilder<int>(
               valueListenable: game.shotCountNotifier,
@@ -581,15 +583,21 @@ class _ChallengeParPanel extends StatelessWidget {
   }
 }
 
-String _describeChallengeGoal(LevelGoal goal) {
-  return switch (goal) {
-    ProduceGoal(:final element, :final count) =>
-      'Produce $count× ${element.symbol}',
-    BoardUnderGoal(:final value) => 'Fewer than $value nuclei',
-    SurviveGoal(:final shots) => 'Survive $shots shots',
-    EliminateGoal(:final element) => 'Eliminate all ${element.symbol}',
-    CauseSupernovaGoal(:final count) => 'Cause $count× supernova',
-  };
+List<Widget> _challengeRuleLines(LevelSpec level) {
+  final rules = playerFacingConstraintLines(level);
+  if (rules.isEmpty) return const [];
+  return [
+    const SizedBox(height: 8),
+    Text('RULES', style: GameFonts.label()),
+    for (final line in rules)
+      Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          line,
+          style: GameFonts.challengeGoal(complete: false),
+        ),
+      ),
+  ];
 }
 
 class ShotPreviewRow extends StatelessWidget {

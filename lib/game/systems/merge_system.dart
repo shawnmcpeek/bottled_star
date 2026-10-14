@@ -122,7 +122,18 @@ class MergeSystem {
 
       final posA = a.body.position.clone();
       final posB = b.body.position.clone();
-      final mid = (posA + posB) * 0.5;
+      // A patrol is absorbed into its target; the product does not jump
+      // halfway up the patrol's path.
+      final absorb = world.challengeLevel?.absorbMerges ?? false;
+      final mid = a.isOrbiting
+          ? posB
+          : b.isOrbiting
+          ? posA
+          : absorb && a.tier.tier > b.tier.tier
+          ? posA
+          : absorb && b.tier.tier > a.tier.tier
+          ? posB
+          : (posA + posB) * 0.5;
 
       final massA = a.body.mass;
       final massB = b.body.mass;

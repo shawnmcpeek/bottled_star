@@ -5,1332 +5,734 @@
     {
       "id": "p1_01",
       "name": "Split Duty",
-      "blurb": "Oxygen wants the helium. Carbon wants a twin. Spend the fuel wrong and you get neither.",
+      "blurb": "Oxygen wants one helium. Carbon wants a twin you have to build. Spend the fuel wrong and you get neither.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 50,
-            "radiusFrac": 0.48
-          },
-          {
-            "element": "O",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 230,
-            "radiusFrac": 0.48
-          }
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 50, "radiusFrac": 0.48 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 230, "radiusFrac": 0.48 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "H",
-          "H",
-          "He",
-          "H"
-        ],
+        "sequence": ["H", "H", "H", "H", "He"],
         "visibleCount": 3
       },
-      "budget": {
-        "shots": 6
-      },
+
+      "budget": { "shots": 5 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Ne",
-          "count": 1
-        },
-        {
-          "type": "produce",
-          "element": "Mg",
-          "count": 1
-        }
+        { "type": "produce", "element": "Ne", "count": 1 },
+        { "type": "produce", "element": "Mg", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 8
-        }
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 5
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 5 }
     },
+
     {
       "id": "p1_02",
       "name": "Stop There",
-      "blurb": "Neon to magnesium is one helium. The second helium is a trap.",
+      "blurb": "Neon to magnesium is one helium. The second helium is silicon, and that's the end.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ne",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 140,
-            "radiusFrac": 0.42
-          }
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "He",
-          "H",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 5
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Mg",
-          "count": 1
-        }
+        { "type": "produce", "element": "Mg", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "neverProduce",
-          "element": "Si"
-        }
+        { "type": "neverProduce", "element": "Si" },
+        { "type": "maxBodies", "value": 6 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 2
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_03",
       "name": "Don't Feed It",
-      "blurb": "Two oxygens, carbon in the core. Knock the oxygens together. Helium is bait \u2014 capture and you fail.",
+      "blurb": "Two oxygens on carbon. Knock them together. Helium is bait — capture and you fail.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "O",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 90,
-            "radiusFrac": 0.72
-          },
-          {
-            "element": "O",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.72
-          }
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.4 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H"
-        ],
+        "sequence": ["H", "H", "He"],
         "visibleCount": 3
       },
-      "budget": {
-        "shots": 6
-      },
+
+      "budget": { "shots": 3 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "S",
-          "count": 1
-        }
+        { "type": "produce", "element": "S", "count": 1 },
+        { "type": "survive", "shots": 3 }
       ],
+
       "constraints": [
-        {
-          "type": "neverProduce",
-          "element": "Ne"
-        }
+        { "type": "neverProduce", "element": "Ne" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 3
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_04",
       "name": "Two Ladders",
-      "blurb": "Grow the oxygen. Build a carbon from scratch. Same-tier skips are closed.",
+      "blurb": "Grow the oxygen with helium. Build a carbon from two heliums. Same-tier skips are closed.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "O",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.4
-          }
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "He",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H"
-        ],
+        "sequence": ["He", "H", "H", "He"],
         "visibleCount": 3
       },
-      "budget": {
-        "shots": 8
-      },
+
+      "budget": { "shots": 4 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Ne",
-          "count": 1
-        },
-        {
-          "type": "produce",
-          "element": "C",
-          "count": 1
-        }
+        { "type": "produce", "element": "Ne", "count": 1 },
+        { "type": "produce", "element": "C", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "noSameTier"
-        },
-        {
-          "type": "maxBodies",
-          "value": 8
-        }
+        { "type": "noSameTier" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 6
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
     },
+
     {
       "id": "p1_05",
       "name": "Caged",
-      "blurb": "Four calciums around an iron post. The post holds the doors open \u2014 pair two heliums in a gap. Feed a calcium and you make another iron, and that's the end.",
+      "blurb": "Carbon sits in a calcium gap on the iron. Helium the carbon.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Fe",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "H",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.5,
-            "arcDeg": [
-              80,
-              100
-            ]
-          },
-          {
-            "element": "Ca",
-            "count": 4,
-            "placement": "ring",
-            "radiusFrac": 0.86,
-            "phaseDeg": 45
-          }
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Ca", "count": 4, "placement": "ring", "radiusFrac": 0.62, "phaseDeg": 45 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He"],
+        "visibleCount": 1
       },
-      "budget": {
-        "shots": 10
-      },
+
+      "budget": { "shots": 1 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "He",
-          "count": 2
-        }
+        { "type": "produce", "element": "O", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "neverProduce",
-          "element": "Fe"
-        },
-        {
-          "type": "maxBodies",
-          "value": 14
-        }
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 4
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 1 }
     },
+
     {
       "id": "p1_06",
       "name": "Shortcut",
-      "blurb": "Four carbons around a hydrogen pin. The pin keeps them from falling together, and it is light enough that a charged hydrogen can shove a carbon into its neighbor. Two magnesium. No helium in the queue.",
+      "blurb": "Four carbons around lead. Shove a carbon into its neighbor, twice. Two magnesium. No helium.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "H",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.32
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 90,
-            "radiusFrac": 0.32
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 180,
-            "radiusFrac": 0.32
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.32
-          }
+          { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.28 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.28 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.28 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.28 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["H", "H"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 4
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Mg",
-          "count": 2
-        }
+        { "type": "produce", "element": "Mg", "count": 2 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 10
-        }
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 2
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_07",
       "name": "No Shortcuts",
-      "blurb": "Two carbons. Same-tier is illegal. Each carbon needs its own helium.",
+      "blurb": "Two carbons on a pin. Same-tier is illegal. Each carbon needs its own helium. Knock them and they just sit.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "C",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.5,
-            "arcDeg": [
-              70,
-              110
-            ]
-          }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 6
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "O",
-          "count": 2
-        }
+        { "type": "produce", "element": "O", "count": 2 }
       ],
+
       "constraints": [
-        {
-          "type": "noSameTier"
-        }
+        { "type": "noSameTier" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 4
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_08",
       "name": "Narrow Window",
-      "blurb": "You can only fire through the top. The carbon starts at the bottom \u2014 wait, or bank it.",
+      "blurb": "Oxygen in the core, carbon on the face. Helium past the carbon. Middle of the arc is oxygen you weren't allowed to make.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.55
-          }
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.18 }
         ],
         "baked": null
       },
-      "injectionArc": {
-        "centerDeg": 90,
-        "widthDeg": 80
-      },
+
+      "injectionArc": { "centerDeg": 90, "widthDeg": 50 },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He"
-        ],
-        "visibleCount": 3
+        "sequence": ["He"],
+        "visibleCount": 1
       },
-      "budget": {
-        "shots": 7
-      },
+
+      "budget": { "shots": 1 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "O",
-          "count": 1
-        }
+        { "type": "produce", "element": "Ne", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 8
-        }
+        { "type": "neverProduce", "element": "O" },
+        { "type": "maxBodies", "value": 6 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 5
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 1 }
     },
+
     {
       "id": "p1_09",
       "name": "Starved",
-      "blurb": "One calcium. No helium given. The carbons are walls \u2014 they will not pair, and they will eat a stray helium.",
+      "blurb": "No helium given. Pair two hydrogens, then the calcium on the iron. Pair on carbon and you get oxygen.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.68
-          },
-          {
-            "element": "C",
-            "count": 4,
-            "placement": "ring",
-            "radiusFrac": 0.5,
-            "phaseDeg": 45
-          }
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.55 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
-      "injectionArc": {
-        "centerDeg": 90,
-        "widthDeg": 130
-      },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["H", "H"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 8
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Fe",
-          "count": 1
-        }
+        { "type": "causeSupernova", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "noSameTier"
-        },
-        {
-          "type": "maxBodies",
-          "value": 14
-        }
+        { "type": "neverProduce", "element": "O" },
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 5
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_10",
       "name": "Ration",
-      "blurb": "Only one helium on the board at a time. Capture the oxygen, then get off the fuel.",
+      "blurb": "Lead in the core, oxygen on it. One helium captures. Dump the second on the lead at the edge of the arc. Touch the neon and it's magnesium.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "O",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 180,
-            "radiusFrac": 0.4
-          },
-          {
-            "element": "C",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.58,
-            "arcDeg": [
-              40,
-              80
-            ]
-          }
+          { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.22 }
         ],
         "baked": null
       },
+
+      "injectionArc": { "centerDeg": 0, "widthDeg": 100 },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "H",
-          "H",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 8
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Ne",
-          "count": 1
-        }
+        { "type": "produce", "element": "Ne", "count": 1 },
+        { "type": "survive", "shots": 2 }
       ],
+
       "constraints": [
-        {
-          "type": "maxOfElement",
-          "element": "He",
-          "value": 1
-        },
-        {
-          "type": "maxBodies",
-          "value": 8
-        }
+        { "type": "neverProduce", "element": "Mg" },
+        { "type": "maxBodies", "value": 6 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 4
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_11",
       "name": "Detour",
-      "blurb": "Two carbons. If they pair, magnesium, and that's the end. Helium-capture one. The hydrogen in the core only keeps gravity from doing it for you.",
+      "blurb": "Two carbons on a pin. Helium one.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "H",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 30,
-            "radiusFrac": 0.72
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 210,
-            "radiusFrac": 0.72
-          }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
-      "injectionArc": {
-        "centerDeg": 90,
-        "widthDeg": 160
-      },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He"],
+        "visibleCount": 1
       },
-      "budget": {
-        "shots": 12
-      },
+
+      "budget": { "shots": 1 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "O",
-          "count": 1
-        }
+        { "type": "produce", "element": "O", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "neverProduce",
-          "element": "Mg"
-        }
+        { "type": "maxBodies", "value": 6 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 4
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 1 }
     },
+
     {
       "id": "p1_12",
       "name": "Remnant Field",
-      "blurb": "Two calciums. Finish them both \u2014 and mind what's left after.",
+      "blurb": "Two calciums will pile. Helium each and they detonate — a remnant stays. Helium on carbon is oxygen.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ca",
-            "count": 2,
-            "placement": "ring",
-            "radiusFrac": 0.45,
-            "phaseDeg": 0
-          }
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.45 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.45 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 12
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Fe",
-          "count": 2
-        }
+        { "type": "produce", "element": "Fe", "count": 2 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 18
-        }
+        { "type": "neverProduce", "element": "O" },
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": true
-      },
-      "par": {
-        "shots": 9
-      }
+
+      "rules": { "remnants": true },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_13",
       "name": "Hold the Line",
-      "blurb": "No goal but staying alive. Fourteen shots. Keep the rim quiet.",
+      "blurb": "One helium, ever. Pair on the oxygen. Then fire the last two hydrogens on the lead, apart from each other.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "C",
-            "count": 4,
-            "placement": "ring",
-            "radiusFrac": 0.6,
-            "phaseDeg": 0
-          },
-          {
-            "element": "O",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 180,
-            "radiusFrac": 0.55
-          }
+          { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.22 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 140, "radiusFrac": 0.28 }
         ],
         "baked": null
       },
+
+      "injectionArc": { "centerDeg": 0, "widthDeg": 100 },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H"
-        ],
+        "sequence": ["H", "H", "H", "H"],
         "visibleCount": 3
       },
-      "budget": {
-        "shots": 14
-      },
+
+      "budget": { "shots": 4 },
+
       "goals": [
-        {
-          "type": "survive",
-          "shots": 14
-        }
+        { "type": "produce", "element": "Ne", "count": 1 },
+        { "type": "survive", "shots": 4 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 16
-        }
+        { "type": "maxTotalProduced", "element": "He", "value": 1 },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 12
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 4 }
     },
+
     {
       "id": "p1_14",
       "name": "Consolidate",
-      "blurb": "Four carbons around a hydrogen pin. Knock both pairs so fewer than 4 nuclei remain. Gravity will not pair them for you.",
+      "blurb": "Four carbons on iron. One pair sits close — they combine. Helium the isolated ones. Helium the pair and you will not have enough.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "H",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.14
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 90,
-            "radiusFrac": 0.14
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 180,
-            "radiusFrac": 0.14
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.14
-          }
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 30, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 12
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "boardUnder",
-          "value": 4
-        }
+        { "type": "eliminate", "element": "C" }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 18
-        }
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 4
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_15",
       "name": "Full Ladder",
-      "blurb": "One neon. Climb it to argon. Three helium in the queue \u2014 the fourth you make. One hydrogen is spare.",
+      "blurb": "Carbon and oxygen on a pin. Helium the carbon so you have two oxygens, then knock them. Helium the seeded oxygen is neon.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ne",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 45,
-            "radiusFrac": 0.4
-          }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.28 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.28 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "He",
-          "He",
-          "H",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "H"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 6
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Ar",
-          "count": 1
-        }
+        { "type": "produce", "element": "S", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 14
-        }
+        { "type": "neverProduce", "element": "Ne" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 5
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_16",
       "name": "No Shortcuts, Tight Room",
-      "blurb": "Two neons. No pairing. Calcium is five helium on one of them \u2014 four in the queue, the fifth you make.",
+      "blurb": "Oxygen on lead, neon cheeks. Helium through the slit. A miss grows magnesium; you still have one helium left.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ne",
-            "count": 2,
-            "placement": "cluster",
-            "radiusFrac": 0.45,
-            "arcDeg": [
-              70,
-              110
-            ]
-          }
+          { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.22 },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 55, "radiusFrac": 0.28 },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 125, "radiusFrac": 0.28 }
         ],
         "baked": null
       },
+
+      "injectionArc": { "centerDeg": 90, "widthDeg": 40 },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "He",
-          "He",
-          "He",
-          "H",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 6
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Ca",
-          "count": 1
-        }
+        { "type": "produce", "element": "Ne", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "noSameTier"
-        },
-        {
-          "type": "maxBodies",
-          "value": 14
-        }
+        { "type": "noSameTier" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 6
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 1 }
     },
+
     {
       "id": "p1_17",
       "name": "Threading the Needle",
       "blurb": "Calcium in the core, carbon on the window face. Only helium, and only the rim of the window. Middle of the arc is oxygen, and that's the end.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 70,
-            "radiusFrac": 0.32
-          }
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 70, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
-      "injectionArc": {
-        "centerDeg": 70,
-        "widthDeg": 50
-      },
+
+      "injectionArc": { "centerDeg": 70, "widthDeg": 50 },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "He"
-        ],
-        "visibleCount": 3
+        "sequence": ["He"],
+        "visibleCount": 1
       },
-      "budget": {
-        "shots": 2
-      },
+
+      "budget": { "shots": 1 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Fe",
-          "count": 1
-        }
+        { "type": "produce", "element": "Fe", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "neverProduce",
-          "element": "O"
-        },
-        {
-          "type": "maxBodies",
-          "value": 10
-        }
+        { "type": "neverProduce", "element": "O" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 1
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 1 }
     },
+
     {
       "id": "p1_18",
       "name": "Twin Stars",
-      "blurb": "Two calciums on a hydrogen pin. Finish them both. If they meet after that, that's not a bug.",
+      "blurb": "Two calciums on a pin, opposite. One helium each. Let the heliums meet and you get carbon, not iron.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "H",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.32
-          },
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 180,
-            "radiusFrac": 0.32
-          }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 12
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Fe",
-          "count": 2
-        }
+        { "type": "produce", "element": "Fe", "count": 2 }
       ],
+
       "constraints": [
-        {
-          "type": "maxBodies",
-          "value": 16
-        }
+        { "type": "neverProduce", "element": "C" },
+        { "type": "maxBodies", "value": 8 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 9
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_19",
       "name": "Overpressure",
-      "blurb": "One iron allowed on the board. Get there once, cleanly, and stop.",
+      "blurb": "Calcium on the iron. One helium detonates. You still have to fire the extra — park it on whatever iron is left. Helium on carbon is oxygen.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 90,
-            "radiusFrac": 0.55
-          },
-          {
-            "element": "C",
-            "count": 3,
-            "placement": "ring",
-            "radiusFrac": 0.4,
-            "phaseDeg": 0
-          }
+          { "element": "Fe", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.55 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.4 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.4 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H",
-          "H",
-          "He",
-          "H"
-        ],
-        "visibleCount": 3
+        "sequence": ["He", "He"],
+        "visibleCount": 2
       },
-      "budget": {
-        "shots": 10
-      },
+
+      "budget": { "shots": 2 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "Fe",
-          "count": 1
-        }
+        { "type": "causeSupernova", "count": 1 },
+        { "type": "survive", "shots": 2 }
       ],
+
       "constraints": [
-        {
-          "type": "maxOfElement",
-          "element": "Fe",
-          "value": 1
-        },
-        {
-          "type": "maxBodies",
-          "value": 14
-        }
+        { "type": "neverProduce", "element": "O" },
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": false
-      },
-      "par": {
-        "shots": 8
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 2 }
     },
+
     {
       "id": "p1_20",
       "name": "Finale",
-      "blurb": "Three jobs: carbon to oxygen, one calcium to iron, neon to magnesium. Two calciums, only one iron allowed. Neon takes one helium \u2014 a second is silicon. You get three helium in the queue and one more from hydrogen. A leftover helium is the trap. Two helium on the board at once is also the trap.",
+      "blurb": "Helium the carbon so you have two oxygens, then knock them. The other helium is the calcium. Helium the seeded oxygen is neon.",
+
       "seed": {
         "bodies": [
-          {
-            "element": "H",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.0
-          },
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 0,
-            "radiusFrac": 0.32
-          },
-          {
-            "element": "Ca",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 180,
-            "radiusFrac": 0.32
-          },
-          {
-            "element": "C",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 90,
-            "radiusFrac": 0.45
-          },
-          {
-            "element": "Ne",
-            "count": 1,
-            "placement": "point",
-            "angleDeg": 270,
-            "radiusFrac": 0.45
-          }
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.28 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.28 },
+          { "element": "Ca", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.32 }
         ],
         "baked": null
       },
+
       "queue": {
         "mode": "fixed",
-        "sequence": [
-          "He",
-          "H",
-          "H",
-          "He",
-          "He"
-        ],
+        "sequence": ["He", "H", "He"],
         "visibleCount": 3
       },
-      "budget": {
-        "shots": 5
-      },
+
+      "budget": { "shots": 3 },
+
       "goals": [
-        {
-          "type": "produce",
-          "element": "O",
-          "count": 1
-        },
-        {
-          "type": "produce",
-          "element": "Fe",
-          "count": 1
-        },
-        {
-          "type": "produce",
-          "element": "Mg",
-          "count": 1
-        }
+        { "type": "produce", "element": "S", "count": 1 },
+        { "type": "produce", "element": "Fe", "count": 1 }
       ],
+
       "constraints": [
-        {
-          "type": "maxOfElement",
-          "element": "Fe",
-          "value": 1
-        },
-        {
-          "type": "maxOfElement",
-          "element": "He",
-          "value": 1
-        },
-        {
-          "type": "neverProduce",
-          "element": "Si"
-        },
-        {
-          "type": "noSameTier"
-        },
-        {
-          "type": "maxBodies",
-          "value": 12
-        }
+        { "type": "neverProduce", "element": "Ne" },
+        { "type": "maxBodies", "value": 10 }
       ],
-      "rules": {
-        "remnants": true
-      },
-      "par": {
-        "shots": 5
-      }
+
+      "rules": { "remnants": false },
+
+      "par": { "shots": 3 }
     }
   ]
 }

@@ -1,3 +1,4 @@
+import '../challenge/sweep_orbit.dart';
 import '../element_tier.dart';
 import '../modes/game_mode.dart';
 
@@ -180,16 +181,22 @@ class NucleusSnapshot {
     required this.tier,
     required this.body,
     required this.rimPressure,
+    this.orbit,
+    this.fixed = false,
   });
 
   final int tier;
   final BodySnapshot body;
   final double rimPressure;
+  final SweepOrbit? orbit;
+  final bool fixed;
 
   Map<String, dynamic> toJson() => {
         't': tier,
         ...body.toJson(),
         'rp': rimPressure,
+        if (orbit != null) 'orbit': orbit!.toJson(),
+        if (fixed) 'fx': true,
       };
 
   static NucleusSnapshot? tryParse(Object? raw) {
@@ -198,11 +205,13 @@ class NucleusSnapshot {
     final tier = _asInt(map['t']);
     final body = BodySnapshot.tryParse(map);
     if (tier == null || body == null) return null;
-    if (tier < 0 || tier > ElementTier.iron.tier) return null;
+    if (tier < 0 || tier > ElementTier.values.last.tier) return null;
     return NucleusSnapshot(
       tier: tier,
       body: body,
       rimPressure: _asDouble(map['rp']) ?? 0,
+      orbit: SweepOrbit.tryParse(map['orbit']),
+      fixed: map['fx'] == true,
     );
   }
 }
