@@ -45,6 +45,7 @@ app.*.map.json
 /android/app/release
 
 # Secrets / store credentials — never commit
+secrets/
 *.jks
 *.keystore
 *.p8

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import '../modes/game_mode.dart';
+import 'name_filter.dart';
 
 /// Top-10 daily (UTC) and all-time boards on Firestore — per mode.
 class LeaderboardService {
@@ -21,7 +22,7 @@ class LeaderboardService {
   FirebaseAuth? _auth;
   FirebaseFirestore? _firestore;
 
-  final Map<String, List<LeaderboardEntry>> _cache = {};
+  final Map<String, LeaderboardBoard> _cache = {};
   final Map<String, DateTime> _fetchedAt = {};
 
   bool get isAvailable {
@@ -51,16 +52,26 @@ class LeaderboardService {
     return k * maxShotsExclusive - s;
   }
 
-  static String? sanitizeDisplayName(String raw) {
-    final trimmed = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+  static String _collapseSpaces(String raw) =>
+      raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+
+  /// User-facing reason a name is refused, or null if it is acceptable.
+  static String? displayNameError(String raw) {
+    final trimmed = _collapseSpaces(raw);
     if (trimmed.isEmpty || trimmed.length > maxDisplayNameLength) {
-      return null;
+      return '1–$maxDisplayNameLength characters';
     }
     if (!RegExp(r"^[\w .'\-]+$", unicode: true).hasMatch(trimmed)) {
-      return null;
+      return "Letters, numbers, spaces, . ' - _ only";
     }
-    return trimmed;
+    if (NameFilter.isBlocked(trimmed)) {
+      return 'Please choose a different name';
+    }
+    return null;
   }
+
+  static String? sanitizeDisplayName(String raw) =>
+      displayNameError(raw) == null ? _collapseSpaces(raw) : null;
 
   static String allTimeCollection(GameMode mode) => switch (mode) {
         GameMode.classic => 'classic_all_time',
@@ -263,84 +274,117 @@ class LeaderboardService {
 
   String _cacheKey(GameMode mode, String period) => '${mode.name}_$period';
 
-  Future<List<LeaderboardEntry>> fetchAllTime({
+  static String rankField(GameMode mode) =>
+      mode == GameMode.classic ? 'score' : 'rankScore';
+
+  Future<LeaderboardBoard> fetchAllTime({
     required GameMode mode,
     bool force = false,
+  }) =>
+      _fetchBoard(mode: mode, daily: false, force: force);
+
+  Future<LeaderboardBoard> fetchDaily({
+    required GameMode mode,
+    bool force = false,
+  }) =>
+      _fetchBoard(mode: mode, daily: true, force: force);
+
+  Future<LeaderboardBoard> _fetchBoard({
+    required GameMode mode,
+    required bool daily,
+    required bool force,
   }) async {
-    if (!isAvailable || mode == GameMode.challenge) return const [];
-    final key = _cacheKey(mode, 'all');
+    if (!isAvailable || mode == GameMode.challenge) {
+      return LeaderboardBoard.empty;
+    }
+    final key = _cacheKey(mode, daily ? 'daily' : 'all');
     final now = DateTime.now();
+    final cached = _cache[key];
+    final fetchedAt = _fetchedAt[key];
     if (!force &&
-        _cache[key] != null &&
-        _fetchedAt[key] != null &&
-        now.difference(_fetchedAt[key]!) < boardCacheTtl) {
-      return _cache[key]!;
+        cached != null &&
+        fetchedAt != null &&
+        now.difference(fetchedAt) < boardCacheTtl) {
+      return cached;
     }
 
-    final Query<Map<String, dynamic>> query = mode == GameMode.classic
-        ? db
-            .collection(allTimeCollection(mode))
-            .orderBy('score', descending: true)
-            .limit(topN)
-        : db
-            .collection(allTimeCollection(mode))
-            .orderBy('rankScore', descending: true)
-            .limit(topN);
-
-    final snap = await query.get();
-    final entries = [
-      for (var i = 0; i < snap.docs.length; i++)
-        LeaderboardEntry.fromMap(
-          rank: i + 1,
-          mode: mode,
-          data: snap.docs[i].data(),
-        ),
-    ];
-    _cache[key] = entries;
-    _fetchedAt[key] = now;
-    return entries;
-  }
-
-  Future<List<LeaderboardEntry>> fetchDaily({
-    required GameMode mode,
-    bool force = false,
-  }) async {
-    if (!isAvailable || mode == GameMode.challenge) return const [];
     final dayKey = utcDayKey();
-    final key = _cacheKey(mode, 'daily');
-    final now = DateTime.now();
-    if (!force &&
-        _cache[key] != null &&
-        _fetchedAt[key] != null &&
-        now.difference(_fetchedAt[key]!) < boardCacheTtl) {
-      return _cache[key]!;
-    }
+    final field = rankField(mode);
+    final collection = db.collection(
+      daily ? dailyCollection(mode) : allTimeCollection(mode),
+    );
+    final Query<Map<String, dynamic>> base = daily
+        ? collection.where('dayKey', isEqualTo: dayKey)
+        : collection;
 
-    final Query<Map<String, dynamic>> query = mode == GameMode.classic
-        ? db
-            .collection(dailyCollection(mode))
-            .where('dayKey', isEqualTo: dayKey)
-            .orderBy('score', descending: true)
-            .limit(topN)
-        : db
-            .collection(dailyCollection(mode))
-            .where('dayKey', isEqualTo: dayKey)
-            .orderBy('rankScore', descending: true)
-            .limit(topN);
-
-    final snap = await query.get();
-    final entries = [
+    // First auth event = the persisted device identity, once restored.
+    final uid = (await auth.authStateChanges().first)?.uid;
+    final snap =
+        await base.orderBy(field, descending: true).limit(topN).get();
+    final top = [
       for (var i = 0; i < snap.docs.length; i++)
         LeaderboardEntry.fromMap(
           rank: i + 1,
           mode: mode,
           data: snap.docs[i].data(),
+          isMe: uid != null && snap.docs[i].data()['uid'] == uid,
         ),
     ];
-    _cache[key] = entries;
+
+    LeaderboardEntry? me;
+    if (uid != null && !top.any((e) => e.isMe)) {
+      me = await _fetchOwnEntry(
+        mode: mode,
+        ref: collection.doc(daily ? '${dayKey}_$uid' : uid),
+        base: base,
+        field: field,
+      );
+    }
+
+    final board = LeaderboardBoard(top: top, me: me);
+    _cache[key] = board;
     _fetchedAt[key] = now;
-    return entries;
+    return board;
   }
+
+  /// The player's own row with its true board position, for players outside
+  /// the top [topN]. Rank = number of strictly better rows + 1.
+  Future<LeaderboardEntry?> _fetchOwnEntry({
+    required GameMode mode,
+    required DocumentReference<Map<String, dynamic>> ref,
+    required Query<Map<String, dynamic>> base,
+    required String field,
+  }) async {
+    try {
+      final data = (await ref.get()).data();
+      final value = data?[field];
+      if (data == null || value is! num) return null;
+      final ahead = await base
+          .where(field, isGreaterThan: value)
+          .orderBy(field, descending: true)
+          .count()
+          .get();
+      return LeaderboardEntry.fromMap(
+        rank: (ahead.count ?? 0) + 1,
+        mode: mode,
+        data: data,
+        isMe: true,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class LeaderboardBoard {
+  const LeaderboardBoard({required this.top, this.me});
+
+  static const empty = LeaderboardBoard(top: []);
+
+  final List<LeaderboardEntry> top;
+
+  /// Set only when the player has a row but is outside [top].
+  final LeaderboardEntry? me;
 }
 
 class LeaderboardEntry {
@@ -353,6 +397,7 @@ class LeaderboardEntry {
     this.kilonovas = 0,
     this.shots = 0,
     this.peakTier = 0,
+    this.isMe = false,
   });
 
   final int rank;
@@ -363,6 +408,7 @@ class LeaderboardEntry {
   final int kilonovas;
   final int shots;
   final int peakTier;
+  final bool isMe;
 
   String get valueLabel => mode == GameMode.collapse
       ? 'K$kilonovas · $shots shots'
@@ -372,6 +418,7 @@ class LeaderboardEntry {
     required int rank,
     required GameMode mode,
     required Map<String, dynamic> data,
+    bool isMe = false,
   }) {
     int asInt(dynamic raw) {
       if (raw is int) return raw;
@@ -390,6 +437,7 @@ class LeaderboardEntry {
       kilonovas: asInt(data['kilonovas']),
       shots: asInt(data['shots']),
       peakTier: asInt(data['peakTier']),
+      isMe: isMe,
     );
   }
 }

@@ -21,9 +21,9 @@ extension GameModeInfo on GameMode {
 
   String get highestTierKey => 'highest_tier_$name';
 
-  /// Challenge requires the RevenueCat `challenge` entitlement (or the
-  /// debug unlock override in PurchasesController). Locked players still see
-  /// level-select — they buy what they can see.
+  /// Challenge requires at least one owned pack (or the debug unlock in
+  /// PurchasesController). Locked players still see level-select — they buy
+  /// what they can see.
   bool get isPlayable => switch (this) {
         GameMode.classic || GameMode.collapse => true,
         GameMode.challenge => PurchasesController.instance.hasChallenge,

@@ -108,7 +108,7 @@ abstract final class GameConstants {
   static const String prefsAdPlaythroughCount = 'ad_playthrough_count';
   static const String prefsChallengeUnlockedDebug = 'challenge_unlocked_debug';
   /// Legacy key — still read once for migration in PurchasesController.
-  static const String prefsCollapseUnlockedDebug = 'collapse_unlocked_debug';
+  static const String prefsReviewLastAskedMs = 'review_last_asked_ms';
 }
 
 enum RunEnding {

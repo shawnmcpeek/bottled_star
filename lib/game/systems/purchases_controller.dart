@@ -8,12 +8,6 @@ import 'achievement_defs.dart';
 import 'achievement_store.dart';
 import 'purchases_config.dart';
 
-/// TEMPORARY — internal playtest only (Shawn + daughter). Forces Challenge
-/// unlocked for everyone, skipping the Options toggle and the store
-/// entirely. Flip to `false` when told to "turn it on" before any store
-/// build (TestFlight / Play internal / production).
-const bool kChallengeForceUnlockForTesting = true;
-
 /// RevenueCat wrapper — owned products in, derived entitlements out.
 ///
 /// [Entitlements.noAds] is never persisted. Only the owned product ID set is
@@ -43,25 +37,13 @@ class PurchasesController extends ChangeNotifier {
 
   bool get adsEnabledFlag => adsEnabled(_entitlements);
 
-  /// Any challenge pack (including legacy `challenge_unlock` → pack 1).
-  bool get hasChallenge =>
-      kChallengeForceUnlockForTesting ||
-      _debugUnlock ||
-      hasAnyChallengePack(_entitlements);
+  /// Owns at least one Challenge pack.
+  bool get hasChallenge => _debugUnlock || hasAnyChallengePack(_entitlements);
 
-  bool hasPack(String entitlementId) =>
-      _debugUnlock || _entitlements.contains(entitlementId);
+  bool ownsPack(int pack) =>
+      _debugUnlock || _entitlements.contains(Entitlements.forPack(pack));
 
-  Package? get challengePackage {
-    final offering = _currentOffering;
-    if (offering == null) return null;
-    return offering.getPackage(ProductIds.challengePack1) ??
-        offering.getPackage(ProductIds.legacyChallengeUnlock) ??
-        offering.lifetime ??
-        (offering.availablePackages.isNotEmpty
-            ? offering.availablePackages.first
-            : null);
-  }
+  bool get ownsAnyPack => hasChallenge;
 
   Package? packageForProduct(String productId) {
     final offering = _currentOffering;
@@ -69,24 +51,23 @@ class PurchasesController extends ChangeNotifier {
     final byId = offering.getPackage(productId);
     if (byId != null) return byId;
     for (final p in offering.availablePackages) {
-      if (p.storeProduct.identifier == productId) return p;
+      final id = p.storeProduct.identifier;
+      // Play one-time products may report as "productId:purchaseOptionId".
+      if (id == productId || id.startsWith('$productId:')) return p;
     }
     return null;
   }
 
-  String get challengePriceLabel {
-    final pkg = challengePackage;
-    final price = pkg?.storeProduct.priceString;
-    if (price != null && price.isNotEmpty) return price;
-    return '\$3.99';
+  /// Localized store price, or [fallback] until the store answers.
+  String priceLabel(String productId, {required String fallback}) {
+    final price = packageForProduct(productId)?.storeProduct.priceString;
+    return (price != null && price.isNotEmpty) ? price : fallback;
   }
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _debugUnlock =
-        prefs.getBool(GameConstants.prefsChallengeUnlockedDebug) ??
-            prefs.getBool(GameConstants.prefsCollapseUnlockedDebug) ??
-            false;
+    _debugUnlock = kDebugMode &&
+        (prefs.getBool(GameConstants.prefsChallengeUnlockedDebug) ?? false);
 
     // Provisional owned set before the store query resolves — so a paying
     // user offline on a cold launch does not briefly see ads.
@@ -166,43 +147,11 @@ class PurchasesController extends ChangeNotifier {
     _applyOwnedProducts(owned, persist: true);
   }
 
-  Future<bool> purchaseChallenge() async {
-    final pkg = challengePackage;
-    if (!_configured || pkg == null) {
-      _lastError = 'Purchase unavailable on this platform';
-      notifyListeners();
-      return false;
-    }
-    try {
-      final result = await Purchases.purchase(PurchaseParams.package(pkg));
-      _applyCustomerInfo(result.customerInfo);
-      _lastError = null;
-      notifyListeners();
-      return hasChallenge;
-    } on PlatformException catch (e) {
-      final code = PurchasesErrorHelper.getErrorCode(e);
-      if (code != PurchasesErrorCode.purchaseCancelledError) {
-        _lastError = e.message ?? e.toString();
-      } else {
-        _lastError = null;
-      }
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _lastError = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
+  /// Buys [productId]. True when the purchase landed.
   Future<bool> purchaseProduct(String productId) async {
-    final pkg = packageForProduct(productId) ??
-        (productId == ProductIds.challengePack1 ||
-                productId == ProductIds.legacyChallengeUnlock
-            ? challengePackage
-            : null);
+    final pkg = packageForProduct(productId);
     if (!_configured || pkg == null) {
-      _lastError = 'Purchase unavailable on this platform';
+      _lastError = 'Purchase unavailable right now';
       notifyListeners();
       return false;
     }
@@ -211,16 +160,12 @@ class PurchasesController extends ChangeNotifier {
       _applyCustomerInfo(result.customerInfo);
       _lastError = null;
       notifyListeners();
-      return _ownedProductIds.contains(productId) ||
-          (productId == ProductIds.challengePack1 &&
-              _ownedProductIds.contains(ProductIds.legacyChallengeUnlock));
+      return _ownedProductIds.contains(productId);
     } on PlatformException catch (e) {
       final code = PurchasesErrorHelper.getErrorCode(e);
-      if (code != PurchasesErrorCode.purchaseCancelledError) {
-        _lastError = e.message ?? e.toString();
-      } else {
-        _lastError = null;
-      }
+      _lastError = code == PurchasesErrorCode.purchaseCancelledError
+          ? null
+          : (e.message ?? e.toString());
       notifyListeners();
       return false;
     } catch (e) {
@@ -241,7 +186,7 @@ class PurchasesController extends ChangeNotifier {
       _applyCustomerInfo(info);
       _lastError = null;
       notifyListeners();
-      return hasChallenge || !adsEnabledFlag;
+      return hasChallenge;
     } catch (e) {
       _lastError = e.toString();
       notifyListeners();

@@ -1,3 +1,4 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,21 @@ Future<void> _initFirebase() async {
     );
   } catch (e) {
     debugPrint('Firebase unavailable: $e');
+    return;
+  }
+  // Web is test-only and has no App Check provider; enforced boards reject it.
+  if (kIsWeb) return;
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleDeviceCheckProvider(),
+    );
+  } catch (e) {
+    debugPrint('App Check unavailable: $e');
   }
 }
 

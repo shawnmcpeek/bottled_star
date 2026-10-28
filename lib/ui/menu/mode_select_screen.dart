@@ -13,7 +13,6 @@ import '../../game/systems/settings_store.dart';
 import '../../game/systems/sfx_controller.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
-import 'challenge_unlock_sheet.dart';
 import 'continue_run_dialog.dart';
 import 'menu_page_scaffold.dart';
 import 'star_anchored_scroller.dart';
@@ -61,10 +60,6 @@ class _ModeSelectScreenState extends State<ModeSelectScreen> {
 
   Future<void> _open(GameMode mode) async {
     if (mode == GameMode.challenge) {
-      if (!PurchasesController.instance.hasChallenge) {
-        final unlocked = await showChallengeUnlockSheet(context);
-        if (!unlocked || !mounted) return;
-      }
       await Navigator.of(context).pushNamed('/challenge-levels');
       if (mounted) setState(() {});
       return;

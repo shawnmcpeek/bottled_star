@@ -5,7 +5,7 @@
     {
       "id": "p3_01",
       "name": "Clean Slate",
-      "blurb": "Two carbons swing around the lead. One helium each. Lead your shot — a miss lands on the lead.",
+      "blurb": "Two carbons swing around the lead. One helium each. Lead your shot.",
 
       "seed": {
         "bodies": [
@@ -25,7 +25,11 @@
             "angleDeg": 180,
             "radiusFrac": 0.55,
             "orbit": { "sweepDeg": 100, "periodSeconds": 4, "phaseDeg": 180 }
-          }
+          },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 50, "radiusFrac": 0.74, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 130, "radiusFrac": 0.74, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 230, "radiusFrac": 0.74, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 310, "radiusFrac": 0.74, "fixed": true }
         ],
         "baked": null
       },
@@ -43,7 +47,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 6 }
+        { "type": "maxBodies", "value": 10 }
       ],
 
       "rules": { "remnants": false },
@@ -513,12 +517,14 @@
     {
       "id": "p3_13",
       "name": "Overdraft",
-      "blurb": "Pair on the carbon for oxygen. Then fire the last two hydrogens beside the oxygen without letting them pair.",
+      "blurb": "Pair on the carbon for oxygen. Then spend the last two hydrogens.",
 
       "seed": {
         "bodies": [
           { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.22 }
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.22 },
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 40, "radiusFrac": 0.17 },
+          { "element": "H", "count": 1, "placement": "point", "angleDeg": 140, "radiusFrac": 0.17 }
         ],
         "baked": null
       },
@@ -840,7 +846,6 @@
 
       "constraints": [
         { "type": "neverProduce", "element": "Ne" },
-        { "type": "neverProduce", "element": "C" },
         { "type": "maxBodies", "value": 12 }
       ],
 

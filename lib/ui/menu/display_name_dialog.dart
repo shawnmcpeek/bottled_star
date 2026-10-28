@@ -19,6 +19,17 @@ Future<String?> promptDisplayName(
     builder: (ctx) {
       return StatefulBuilder(
         builder: (ctx, setLocal) {
+          void submit() {
+            final problem =
+                LeaderboardService.displayNameError(controller.text);
+            if (problem != null) {
+              setLocal(() => error = problem);
+              return;
+            }
+            Navigator.of(ctx)
+                .pop(LeaderboardService.sanitizeDisplayName(controller.text));
+          }
+
           return AlertDialog(
             backgroundColor: GameColors.spaceDeep,
             title: Text(
@@ -66,15 +77,7 @@ Future<String?> promptDisplayName(
                       borderSide: BorderSide(color: GameColors.chamberGlow),
                     ),
                   ),
-                  onSubmitted: (_) {
-                    final cleaned =
-                        LeaderboardService.sanitizeDisplayName(controller.text);
-                    if (cleaned == null) {
-                      setLocal(() => error = '1–16 characters');
-                      return;
-                    }
-                    Navigator.of(ctx).pop(cleaned);
-                  },
+                  onSubmitted: (_) => submit(),
                 ),
               ],
             ),
@@ -91,15 +94,7 @@ Future<String?> promptDisplayName(
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  final cleaned =
-                      LeaderboardService.sanitizeDisplayName(controller.text);
-                  if (cleaned == null) {
-                    setLocal(() => error = '1–16 characters');
-                    return;
-                  }
-                  Navigator.of(ctx).pop(cleaned);
-                },
+                onPressed: submit,
                 child: Text(
                   'Save',
                   style: GameFonts.ui(

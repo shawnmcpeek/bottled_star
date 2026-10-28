@@ -115,7 +115,10 @@
 
       "seed": {
         "bodies": [
-          { "element": "O", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.4 }
+          { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.22 },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 30, "radiusFrac": 0.24 },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 150, "radiusFrac": 0.24 }
         ],
         "baked": null
       },
@@ -181,15 +184,17 @@
     {
       "id": "p1_06",
       "name": "Shortcut",
-      "blurb": "Four carbons around lead. Shove a carbon into its neighbor, twice. Two magnesium. No helium.",
+      "blurb": "Two carbon pairs on lead, almost touching. Shove each pair shut with a hydrogen. Two magnesium.",
 
       "seed": {
         "bodies": [
           { "element": "Pb", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.28 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.28 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.28 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.28 }
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.2 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 46, "radiusFrac": 0.2 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.2 },
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 226, "radiusFrac": 0.2 },
+          { "element": "He", "count": 1, "placement": "point", "angleDeg": 90, "radiusFrac": 0.18 },
+          { "element": "He", "count": 1, "placement": "point", "angleDeg": 270, "radiusFrac": 0.18 }
         ],
         "baked": null
       },
@@ -218,13 +223,17 @@
     {
       "id": "p1_07",
       "name": "No Shortcuts",
-      "blurb": "Two carbons on a pin. Same-tier is illegal. Each carbon needs its own helium. Knock them and they just sit.",
+      "blurb": "Two carbons on a pin. Same-tier is illegal. Each carbon needs its own helium.",
 
       "seed": {
         "bodies": [
           { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
           { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 }
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 50, "radiusFrac": 0.25, "fixed": true },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 130, "radiusFrac": 0.25, "fixed": true },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 230, "radiusFrac": 0.25, "fixed": true },
+          { "element": "Ne", "count": 1, "placement": "point", "angleDeg": 310, "radiusFrac": 0.25, "fixed": true }
         ],
         "baked": null
       },
@@ -243,7 +252,7 @@
 
       "constraints": [
         { "type": "noSameTier" },
-        { "type": "maxBodies", "value": 8 }
+        { "type": "maxBodies", "value": 10 }
       ],
 
       "rules": { "remnants": false },
@@ -316,7 +325,6 @@
       ],
 
       "constraints": [
-        { "type": "neverProduce", "element": "O" },
         { "type": "maxBodies", "value": 10 }
       ],
 
@@ -372,7 +380,13 @@
         "bodies": [
           { "element": "H", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.0 },
           { "element": "C", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.32 },
-          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 }
+          { "element": "C", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.32 },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 0, "radiusFrac": 0.4, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 180, "radiusFrac": 0.4, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 60, "radiusFrac": 0.32, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 120, "radiusFrac": 0.32, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 240, "radiusFrac": 0.32, "fixed": true },
+          { "element": "O", "count": 1, "placement": "point", "angleDeg": 300, "radiusFrac": 0.32, "fixed": true }
         ],
         "baked": null
       },
@@ -390,7 +404,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 6 }
+        { "type": "maxBodies", "value": 12 }
       ],
 
       "rules": { "remnants": false },
@@ -650,7 +664,6 @@
       ],
 
       "constraints": [
-        { "type": "neverProduce", "element": "C" },
         { "type": "maxBodies", "value": 8 }
       ],
 

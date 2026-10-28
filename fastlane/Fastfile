@@ -1,0 +1,100 @@
+default_platform(:ios)
+
+def repo_root
+  File.expand_path("..", __dir__)
+end
+
+platform :ios do
+  private_lane :asc_api_key do
+    app_store_connect_api_key(
+      key_id: File.read(File.join(repo_root, "secrets/apple/key_id")).strip,
+      issuer_id: File.read(File.join(repo_root, "secrets/apple/issuer_id")).strip,
+      key_filepath: Dir[File.join(repo_root, "secrets/apple/AuthKey_*.p8")].first,
+      in_house: false
+    )
+  end
+
+  desc "Upload App Store listing text only (no IPA, no screenshots)"
+  lane :upload_asc_listing do
+    deliver(
+      api_key: asc_api_key,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      force: true,
+      submit_for_review: false,
+      run_precheck_before_submit: false,
+      precheck_include_in_app_purchases: false,
+      metadata_path: File.join(repo_root, "fastlane/metadata")
+    )
+  end
+
+  desc "Upload App Store screenshots only"
+  lane :upload_asc_screenshots do
+    deliver(
+      api_key: asc_api_key,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      screenshots_path: File.join(repo_root, "fastlane/screenshots"),
+      force: true,
+      submit_for_review: false,
+      run_precheck_before_submit: false,
+      precheck_include_in_app_purchases: false
+    )
+  end
+end
+
+platform :android do
+  desc "Upload Play Store listing text only (no AAB, no images)"
+  lane :upload_play_listing do
+    require "supply"
+
+    package = "pro.daddoodev.bottledstar"
+    lang = "en-US"
+    dir = File.join(repo_root, "fastlane/metadata/android", lang)
+
+    Supply.config = FastlaneCore::Configuration.create(Supply::Options.available_options, {
+      json_key: File.join(repo_root, "secrets/google/play-store.json"),
+      package_name: package,
+      metadata_path: File.join(repo_root, "fastlane/metadata/android")
+    })
+
+    client = Supply::Client.make_from_config
+    client.begin_edit(package_name: package)
+    client.update_listing_for_language(
+      language: lang,
+      title: File.read(File.join(dir, "title.txt")).strip,
+      short_description: File.read(File.join(dir, "short_description.txt")).strip,
+      full_description: File.read(File.join(dir, "full_description.txt")).strip
+    )
+    client.commit_current_edit!
+    UI.success("Play listing text uploaded for #{lang}")
+  end
+
+  desc "Upload Play Store phone screenshots only"
+  lane :upload_play_screenshots do
+    require "supply"
+
+    package = "pro.daddoodev.bottledstar"
+    lang = "en-US"
+    folder = File.join(repo_root, "fastlane/metadata/android", lang, "images", "phoneScreenshots")
+
+    Supply.config = FastlaneCore::Configuration.create(Supply::Options.available_options, {
+      json_key: File.join(repo_root, "secrets/google/play-store.json"),
+      package_name: package,
+      metadata_path: File.join(repo_root, "fastlane/metadata/android")
+    })
+
+    client = Supply::Client.make_from_config
+    client.begin_edit(package_name: package)
+    client.clear_screenshots(image_type: "phoneScreenshots", language: lang)
+    Dir[File.join(folder, "*.{jpg,jpeg,png}")].sort.each do |path|
+      client.upload_image(image_path: path, image_type: "phoneScreenshots", language: lang)
+      UI.message("Uploaded #{File.basename(path)}")
+    end
+    client.commit_current_edit!
+    UI.success("Play phone screenshots uploaded for #{lang}")
+  end
+end

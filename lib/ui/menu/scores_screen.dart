@@ -126,13 +126,13 @@ class _ScoresScreenState extends State<ScoresScreen>
                         _BoardSection(
                           title: 'Daily',
                           subtitle: LeaderboardService.utcDayKey(),
-                          entries: data.daily,
+                          board: data.daily,
                         ),
                         const SizedBox(height: 28),
                         _BoardSection(
                           title: 'All-time',
                           subtitle: 'Top ${LeaderboardService.topN}',
-                          entries: data.allTime,
+                          board: data.allTime,
                         ),
                       ],
                     ],
@@ -155,12 +155,12 @@ class _BoardBundle {
   });
 
   const _BoardBundle.unavailable()
-      : daily = const [],
-        allTime = const [],
+      : daily = LeaderboardBoard.empty,
+        allTime = LeaderboardBoard.empty,
         available = false;
 
-  final List<LeaderboardEntry> daily;
-  final List<LeaderboardEntry> allTime;
+  final LeaderboardBoard daily;
+  final LeaderboardBoard allTime;
   final bool available;
 }
 
@@ -168,12 +168,12 @@ class _BoardSection extends StatelessWidget {
   const _BoardSection({
     required this.title,
     required this.subtitle,
-    required this.entries,
+    required this.board,
   });
 
   final String title;
   final String subtitle;
-  final List<LeaderboardEntry> entries;
+  final LeaderboardBoard board;
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +190,7 @@ class _BoardSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        if (entries.isEmpty)
+        if (board.top.isEmpty)
           Text(
             'No scores yet',
             style: GameFonts.ui(
@@ -199,10 +199,19 @@ class _BoardSection extends StatelessWidget {
             ),
           )
         else
-          for (final entry in entries) ...[
+          for (final entry in board.top) ...[
             _ScoreRow(entry: entry),
             const SizedBox(height: 10),
           ],
+        if (board.me case final me?) ...[
+          Text(
+            '···',
+            textAlign: TextAlign.center,
+            style: GameFonts.score(fontSize: 16, color: GameColors.mutedText),
+          ),
+          const SizedBox(height: 10),
+          _ScoreRow(entry: me),
+        ],
       ],
     );
   }
@@ -215,16 +224,20 @@ class _ScoreRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final me = entry.isMe;
     return Row(
       children: [
-        SizedBox(
-          width: 28,
-          child: Text(
-            '${entry.rank}',
-            style: GameFonts.score(
-              fontSize: 16,
-              weight: FontWeight.w600,
-              color: GameColors.rimMetal,
+        ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 28),
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              '${entry.rank}',
+              style: GameFonts.score(
+                fontSize: 16,
+                weight: FontWeight.w600,
+                color: me ? GameColors.chamberGlow : GameColors.rimMetal,
+              ),
             ),
           ),
         ),
@@ -235,6 +248,7 @@ class _ScoreRow extends StatelessWidget {
             style: GameFonts.ui(
               fontSize: 16,
               weight: FontWeight.w600,
+              color: me ? GameColors.chamberGlow : GameColors.scoreText,
             ),
           ),
         ),
@@ -243,6 +257,7 @@ class _ScoreRow extends StatelessWidget {
           style: GameFonts.score(
             fontSize: 16,
             weight: FontWeight.w500,
+            color: me ? GameColors.chamberGlow : GameColors.scoreText,
           ),
         ),
       ],

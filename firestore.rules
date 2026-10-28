@@ -8,7 +8,15 @@ service cloud.firestore {
     function validName(name) {
       return name is string
         && name.size() >= 1
-        && name.size() <= 16;
+        && name.size() <= 16
+        && name.matches("[A-Za-z0-9_ .'-]+")
+        && !name.lower().replace('[^a-z]', '').matches(
+          '.*(fuck|shit|cunt|nigg|faggot|bitch|whore|slut|porn|pussy|asshole|hitler|nazi|retard|tranny|kike|wetback|jizz|twat|blowjob|cocksuck|motherf).*'
+        );
+    }
+
+    function serverTime() {
+      return request.resource.data.updatedAt == request.time;
     }
 
     function validScore(score) {
@@ -43,19 +51,29 @@ service cloud.firestore {
         && data.rankScore == data.kilonovas * 1000000 - data.shots;
     }
 
-    function classicFields() {
+    function classicFields(extra) {
       return request.resource.data.keys().hasAll([
           'uid', 'displayName', 'mode', 'ending', 'peakTier', 'score'
-        ])
+        ].concat(extra))
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'mode', 'ending', 'peakTier', 'score',
+          'updatedAt'
+        ].concat(extra))
+        && serverTime()
         && request.resource.data.mode == 'classic'
         && validScore(request.resource.data.score);
     }
 
-    function collapseFields() {
+    function collapseFields(extra) {
       return request.resource.data.keys().hasAll([
           'uid', 'displayName', 'mode', 'ending', 'peakTier',
           'kilonovas', 'shots', 'rankScore'
-        ])
+        ].concat(extra))
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'mode', 'ending', 'peakTier',
+          'kilonovas', 'shots', 'rankScore', 'updatedAt'
+        ].concat(extra))
+        && serverTime()
         && request.resource.data.mode == 'collapse'
         && validKilonovas(request.resource.data.kilonovas)
         && validShots(request.resource.data.shots)
@@ -69,7 +87,7 @@ service cloud.firestore {
         && validName(request.resource.data.displayName)
         && validPeak(request.resource.data.peakTier)
         && validEnding(request.resource.data.ending)
-        && classicFields();
+        && classicFields([]);
     }
 
     function classicUpdateOk(uid) {
@@ -84,7 +102,7 @@ service cloud.firestore {
         && validName(request.resource.data.displayName)
         && validPeak(request.resource.data.peakTier)
         && validEnding(request.resource.data.ending)
-        && collapseFields();
+        && collapseFields([]);
     }
 
     function collapseUpdateOk(uid) {
@@ -100,7 +118,7 @@ service cloud.firestore {
         && validName(request.resource.data.displayName)
         && validPeak(request.resource.data.peakTier)
         && validEnding(request.resource.data.ending)
-        && classicFields();
+        && classicFields(['dayKey']);
     }
 
     function dailyCollapseCreateOk() {
@@ -111,7 +129,7 @@ service cloud.firestore {
         && validName(request.resource.data.displayName)
         && validPeak(request.resource.data.peakTier)
         && validEnding(request.resource.data.ending)
-        && collapseFields();
+        && collapseFields(['dayKey']);
     }
 
     // Legacy flat boards — read-only going forward.

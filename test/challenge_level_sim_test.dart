@@ -261,14 +261,149 @@ void main() {
       expect(bad.status, ChallengeRunStatus.lost);
     });
 
-    testWidgets('Overdraft completes on the static lead', (tester) async {
-      final sim = await playLine(tester, packLevel(3, 'p3_13'), [
+    testWidgets('Overdraft: dumps roll clear, not into the oxygen', (
+      tester,
+    ) async {
+      final level = packLevel(3, 'p3_13');
+      final good = await playLine(tester, level, [
         (90, 0.5, 3),
         (90, 0.5, 4),
-        (61, 0.5, 4),
-        (119, 0.5, 6),
+        (66, 0.5, 4),
+        (114, 0.5, 8),
       ]);
+      expect(good.status, ChallengeRunStatus.won);
+      for (final d in <double>[61, 74]) {
+        final bad = await playLine(tester, level, [
+          (90, 0.5, 3),
+          (90, 0.5, 4),
+          (d, 0.5, 4),
+          (180 - d, 0.5, 8),
+        ]);
+        expect(bad.status, ChallengeRunStatus.lost, reason: '$d');
+      }
+    });
+  });
+
+  group('decoys', () {
+    Future<void> wins(
+      WidgetTester tester,
+      LevelSpec level,
+      List<(double, double, double)> shots,
+    ) async {
+      final sim = await playLine(tester, level, shots);
+      expect(sim.status, ChallengeRunStatus.won, reason: '$shots');
+    }
+
+    Future<void> loses(
+      WidgetTester tester,
+      LevelSpec level,
+      List<(double, double, double)> shots,
+    ) async {
+      final sim = await playLine(tester, level, shots);
+      await sim.run(15);
+      expect(sim.status, ChallengeRunStatus.lost, reason: '$shots');
+    }
+
+    List<(double, double, double)> same(double a, int n, double w) => [
+      for (var i = 0; i < n; i++) (a, 0.5, w),
+    ];
+
+    testWidgets('seeded decoys hold still', (tester) async {
+      for (final (p, id) in [
+        (1, 'p1_04'),
+        (1, 'p1_06'),
+        (1, 'p1_07'),
+        (1, 'p1_11'),
+        (2, 'p2_06'),
+        (2, 'p2_08'),
+        (2, 'p2_09'),
+        (3, 'p3_13'),
+      ]) {
+        final sim = await playLine(
+          tester,
+          packLevel(p, id),
+          [],
+          settleFirst: 10,
+        );
+        expect(sim.status, ChallengeRunStatus.playing, reason: id);
+      }
+    });
+
+    testWidgets('Two Ladders: build the carbon clear of the neon', (
+      tester,
+    ) async {
+      final level = packLevel(1, 'p1_04');
+      await wins(tester, level, [(270, 0.5, 3), ...same(90, 3, 3)]);
+      await wins(tester, level, [(270, 0.5, 3), ...same(200, 3, 3)]);
+      await loses(tester, level, [(270, 0.5, 3), ...same(60, 3, 6)]);
+    });
+
+    testWidgets('Shortcut: shove from the outer end, not the gap', (
+      tester,
+    ) async {
+      final level = packLevel(1, 'p1_06');
+      await wins(tester, level, [(352, 0.5, 5), (172, 0.5, 8)]);
+      await wins(tester, level, [(54, 0.5, 5), (234, 0.5, 8)]);
+      await wins(tester, level, [(344, 0.5, 5), (164, 0.5, 8)]);
+      await loses(tester, level, [(23, 0.5, 5), (203, 0.5, 8)]);
+    });
+
+    testWidgets('No Shortcuts: thread the neon', (tester) async {
+      final level = packLevel(1, 'p1_07');
+      await wins(tester, level, [(0, 0.5, 4), (180, 0.5, 6)]);
+      await wins(tester, level, [(5, 0.5, 4), (175, 0.5, 6)]);
+      await loses(tester, level, [(11, 0.5, 4), (169, 0.5, 6)]);
+    });
+
+    testWidgets('Detour: around the oxygen, not through it', (tester) async {
+      final level = packLevel(1, 'p1_11');
+      await wins(tester, level, [(28, 0.5, 6)]);
+      for (final a in <double>[0, 20, 40]) {
+        await loses(tester, level, [(a, 0.5, 6)]);
+      }
+    });
+
+    testWidgets('Spark: pair between the oxygens', (tester) async {
+      final level = packLevel(2, 'p2_06');
+      final line = <double>[2, 3, 2, 6];
+      for (final a in <double>[90, 270]) {
+        await wins(tester, level, [for (final w in line) (a, 0.5, w)]);
+      }
+      for (final a in <double>[30, 150]) {
+        await loses(tester, level, [for (final w in line) (a, 0.5, w)]);
+      }
+    });
+
+    testWidgets('Same Story, No Shortcuts: lanes between the carbons', (
+      tester,
+    ) async {
+      final level = packLevel(2, 'p2_08');
+      for (final a in <double>[60, 180]) {
+        await wins(tester, level, same(a, 6, 3));
+      }
+      for (final a in <double>[0, 90]) {
+        await loses(tester, level, same(a, 6, 3));
+      }
+    });
+
+    testWidgets('The Pin Is Fuel: under the cap, not the sides', (
+      tester,
+    ) async {
+      final level = packLevel(2, 'p2_09');
+      await wins(tester, level, [(270, 0.5, 6)]);
+      await loses(tester, level, [(220, 0.5, 6)]);
+      await loses(tester, level, [(90, 0.5, 6)]);
+    });
+
+    testWidgets('Clean Slate: mid-swing, not the turnaround', (tester) async {
+      final level = packLevel(3, 'p3_01');
+      final sim = await LevelSim.boot(tester, level);
+      await sim.run(0.5);
+      sim.fire(0, 0.8);
+      sim.fire(180, 0.8);
+      await sim.run(6);
       expect(sim.status, ChallengeRunStatus.won);
+      await loses(tester, level, [(50, 0.8, 4), (180, 0.8, 4)]);
     });
   });
 

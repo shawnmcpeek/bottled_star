@@ -8,6 +8,7 @@ import '../../game/systems/music_controller.dart';
 import '../../game/systems/purchases_controller.dart';
 import '../../game/systems/settings_store.dart';
 import '../../game/systems/sfx_controller.dart';
+import '../../game/systems/store_links.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
 import 'display_name_dialog.dart';
@@ -192,6 +193,63 @@ class _OptionsScreenState extends State<OptionsScreen> {
                     if (mounted) setState(() {});
                   },
                 ),
+                if (!kIsWeb) ...[
+                  const SizedBox(height: 28),
+                  Text(
+                    'Support',
+                    style: GameFonts.label(fontSize: 11),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Rate Bottled Star',
+                      style: GameFonts.ui(
+                        fontSize: 16,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Open the store listing',
+                      style: GameFonts.ui(
+                        fontSize: 13,
+                        color: GameColors.mutedText.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    onTap: () async {
+                      final ok = await StoreLinks.openListing();
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Couldn\'t open the store',
+                              style: GameFonts.ui(fontSize: 14),
+                            ),
+                            backgroundColor: GameColors.spaceDeep,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Share Bottled Star',
+                      style: GameFonts.ui(
+                        fontSize: 16,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Send a link to a friend',
+                      style: GameFonts.ui(
+                        fontSize: 13,
+                        color: GameColors.mutedText.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    onTap: () => StoreLinks.shareApp(),
+                  ),
+                ],
                 const SizedBox(height: 28),
                 Text(
                   'Data',

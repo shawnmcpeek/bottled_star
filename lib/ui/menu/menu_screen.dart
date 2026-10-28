@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../game/element_tier.dart';
 import '../../game/systems/score_store.dart';
@@ -40,6 +41,55 @@ class _MenuScreenState extends State<MenuScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _confirmExit() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: GameColors.spaceDeep,
+          title: Text(
+            'Leave Bottled Star?',
+            style: GameFonts.ui(fontSize: 18, weight: FontWeight.w600),
+          ),
+          content: Text(
+            'Are you sure you want to exit?',
+            style: GameFonts.ui(
+              fontSize: 14,
+              color: GameColors.mutedText,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(
+                'Stay',
+                style: GameFonts.ui(
+                  fontSize: 14,
+                  weight: FontWeight.w600,
+                  color: GameColors.mutedText,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                'Exit',
+                style: GameFonts.ui(
+                  fontSize: 14,
+                  weight: FontWeight.w600,
+                  color: GameColors.rimWarning,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (leave == true) {
+      await SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final best = _ready ? _scores.highScore : null;
@@ -47,94 +97,100 @@ class _MenuScreenState extends State<MenuScreen> {
         ? ElementTier.fromTier(_scores.highestTier)
         : null;
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const MenuAtmosphere(),
-          SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-                    child: Column(
-                      children: [
-                        const Spacer(flex: 2),
-                        Image.asset(
-                          'assets/branding/logo.png',
-                          width: 168,
-                          height: 168,
-                          filterQuality: FilterQuality.medium,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Bottled Star',
-                          textAlign: TextAlign.center,
-                          style: GameFonts.brandWordmark(),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Hold a star in a bottle.',
-                          textAlign: TextAlign.center,
-                          style: GameFonts.prose(
-                            fontSize: 16,
-                            color: GameColors.mutedText,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_confirmExit());
+      },
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            const MenuAtmosphere(),
+            SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+                      child: Column(
+                        children: [
+                          const Spacer(flex: 2),
+                          Image.asset(
+                            'assets/branding/logo.png',
+                            width: 168,
+                            height: 168,
+                            filterQuality: FilterQuality.medium,
                           ),
-                        ),
-                        const Spacer(flex: 2),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _play,
-                            child: const Text('Play'),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        MenuLinkButton(
-                          label: 'Scores',
-                          onPressed: () =>
-                              Navigator.of(context).pushNamed('/scores'),
-                        ),
-                        MenuLinkButton(
-                          label: 'Achievements',
-                          onPressed: () =>
-                              Navigator.of(context).pushNamed('/achievements'),
-                        ),
-                        MenuLinkButton(
-                          label: 'Options',
-                          onPressed: () =>
-                              Navigator.of(context).pushNamed('/options'),
-                        ),
-                        MenuLinkButton(
-                          label: 'Credits',
-                          onPressed: () =>
-                              Navigator.of(context).pushNamed('/credits'),
-                        ),
-                        const SizedBox(height: 10),
-                        AnimatedOpacity(
-                          opacity: _ready ? 1 : 0,
-                          duration: const Duration(milliseconds: 280),
-                          child: Text(
-                            _bestLine(best, peak),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Bottled Star',
                             textAlign: TextAlign.center,
-                            style: GameFonts.ui(
-                              fontSize: 13,
-                              weight: FontWeight.w500,
+                            style: GameFonts.brandWordmark(),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Hold a star in a bottle.',
+                            textAlign: TextAlign.center,
+                            style: GameFonts.prose(
+                              fontSize: 16,
                               color: GameColors.mutedText,
                             ),
                           ),
-                        ),
-                        const Spacer(flex: 1),
-                      ],
+                          const Spacer(flex: 2),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _play,
+                              child: const Text('Play'),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          MenuLinkButton(
+                            label: 'Scores',
+                            onPressed: () =>
+                                Navigator.of(context).pushNamed('/scores'),
+                          ),
+                          MenuLinkButton(
+                            label: 'Achievements',
+                            onPressed: () => Navigator.of(context)
+                                .pushNamed('/achievements'),
+                          ),
+                          MenuLinkButton(
+                            label: 'Options',
+                            onPressed: () =>
+                                Navigator.of(context).pushNamed('/options'),
+                          ),
+                          MenuLinkButton(
+                            label: 'Credits',
+                            onPressed: () =>
+                                Navigator.of(context).pushNamed('/credits'),
+                          ),
+                          const SizedBox(height: 10),
+                          AnimatedOpacity(
+                            opacity: _ready ? 1 : 0,
+                            duration: const Duration(milliseconds: 280),
+                            child: Text(
+                              _bestLine(best, peak),
+                              textAlign: TextAlign.center,
+                              style: GameFonts.ui(
+                                fontSize: 13,
+                                weight: FontWeight.w500,
+                                color: GameColors.mutedText,
+                              ),
+                            ),
+                          ),
+                          const Spacer(flex: 1),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

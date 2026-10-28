@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../game/bottled_star_game.dart';
@@ -7,6 +9,8 @@ import '../game/challenge/level_library.dart';
 import '../game/challenge/level_spec.dart';
 import '../game/modes/game_mode.dart';
 import '../game/modes/play_args.dart';
+import '../game/systems/purchases_controller.dart';
+import '../game/systems/review_prompt.dart';
 import '../theme/game_colors.dart';
 import '../theme/game_fonts.dart';
 import 'menu/menu_page_scaffold.dart';
@@ -48,6 +52,11 @@ class _ChallengeEndCardState extends State<_ChallengeEndCard> {
   void initState() {
     super.initState();
     _loadNext();
+    if (_won) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(ReviewPrompt.maybeAskAfterPositiveMoment());
+      });
+    }
   }
 
   Future<void> _loadNext() async {
@@ -60,9 +69,16 @@ class _ChallengeEndCardState extends State<_ChallengeEndCard> {
     await library.loadAll();
     if (!mounted) return;
     setState(() {
-      _next = library.nextAfter(current.id);
+      _next = _playableNext(library, current.id);
       _nextReady = true;
     });
+  }
+
+  /// Next level in play order, or null if it sits in a pack not owned.
+  LevelSpec? _playableNext(LevelLibrary library, String currentId) {
+    final next = library.nextAfter(currentId);
+    if (next == null) return null;
+    return PurchasesController.instance.ownsPack(next.pack) ? next : null;
   }
 
   void _levelSelect() {
@@ -82,7 +98,7 @@ class _ChallengeEndCardState extends State<_ChallengeEndCard> {
       if (current != null) {
         final library = LevelLibrary();
         await library.loadAll();
-        next = library.nextAfter(current.id);
+        next = _playableNext(library, current.id);
       }
     }
     if (!mounted) return;

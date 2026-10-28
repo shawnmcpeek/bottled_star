@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+/// Number of Challenge packs on sale.
+const int challengePackCount = 3;
+
 /// Entitlement identifiers — internal, not store-facing.
 abstract final class Entitlements {
   static const challengePack1 = 'challenge_pack_1';
@@ -12,6 +15,13 @@ abstract final class Entitlements {
     challengePack2,
     challengePack3,
   };
+
+  static String forPack(int pack) => switch (pack) {
+        1 => challengePack1,
+        2 => challengePack2,
+        3 => challengePack3,
+        _ => throw ArgumentError.value(pack, 'pack'),
+      };
 }
 
 /// Store-facing product identifiers. Must match Play Console / App Store
@@ -22,16 +32,30 @@ abstract final class ProductIds {
   static const challengePack2 = 'challenge_pack_2';
   static const challengePack3 = 'challenge_pack_3';
 
-  /// Pre-split SKU still live in both store consoles and RevenueCat.
-  /// Grants pack 1 + no_ads for anyone who already bought it.
-  static const legacyChallengeUnlock = 'challenge_unlock';
+  /// "All Challenge Packs" bundle. Keeps the original SKU so the existing
+  /// App Store product carries over.
+  static const challengeAllPacks = 'challenge_unlock';
 
   static const all = <String>{
     noAds,
     challengePack1,
     challengePack2,
     challengePack3,
+    challengeAllPacks,
   };
+
+  static String forPack(int pack) => switch (pack) {
+        1 => challengePack1,
+        2 => challengePack2,
+        3 => challengePack3,
+        _ => throw ArgumentError.value(pack, 'pack'),
+      };
+}
+
+/// Shown when the store has not returned a localized price yet.
+abstract final class FallbackPrices {
+  static const singlePack = r'$1.49';
+  static const allPacks = r'$2.99';
 }
 
 /// Which entitlements a given purchased product grants.
@@ -51,9 +75,10 @@ const Map<String, Set<String>> productGrants = {
     Entitlements.challengePack3,
     Entitlements.noAds,
   },
-  // Legacy — pre-split entitlement. Grants pack 1 and no_ads.
-  ProductIds.legacyChallengeUnlock: {
+  ProductIds.challengeAllPacks: {
     Entitlements.challengePack1,
+    Entitlements.challengePack2,
+    Entitlements.challengePack3,
     Entitlements.noAds,
   },
 };
@@ -77,14 +102,6 @@ bool hasAnyChallengePack(Set<String> entitlements) =>
 
 /// RevenueCat public SDK keys and platform helpers.
 abstract final class PurchasesConfig {
-  /// @deprecated Prefer [Entitlements] / [ProductIds]. Kept for any leftover
-  /// references during the pack split.
-  static const String entitlementChallenge = 'challenge';
-  static const String productChallengeUnlock = ProductIds.legacyChallengeUnlock;
-
-  /// Reserved / unused — Collapse is free.
-  static const String entitlementCollapse = 'collapse';
-
   static const String iosApiKey = 'appl_JErEOnMQweVmdDjqZuXVKDeYzJA';
   static const String androidApiKey = 'goog_unmCoheDNAiIzOwuzjAmAsEIbbT';
 

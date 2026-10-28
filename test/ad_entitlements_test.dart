@@ -66,14 +66,26 @@ void main() {
       expect(adsEnabled(e), isTrue);
     });
 
-    test('legacy challenge_unlock grants pack1 + no_ads', () {
-      final e = deriveEntitlements({ProductIds.legacyChallengeUnlock});
+    test('challenge_unlock bundle grants all three packs + no_ads', () {
+      final e = deriveEntitlements({ProductIds.challengeAllPacks});
       expect(
         e,
-        {Entitlements.challengePack1, Entitlements.noAds},
+        {
+          Entitlements.challengePack1,
+          Entitlements.challengePack2,
+          Entitlements.challengePack3,
+          Entitlements.noAds,
+        },
       );
       expect(hasAnyChallengePack(e), isTrue);
-      expect(adsEnabled(e), isFalse);
+    });
+
+    test('pack lookups map 1..3 to matching IDs', () {
+      for (var n = 1; n <= challengePackCount; n++) {
+        expect(ProductIds.forPack(n), 'challenge_pack_$n');
+        expect(Entitlements.forPack(n), 'challenge_pack_$n');
+      }
+      expect(() => ProductIds.forPack(4), throwsArgumentError);
     });
   });
 
@@ -198,6 +210,9 @@ void main() {
         {Entitlements.challengePack2, Entitlements.noAds},
       );
       expect(purchases.hasChallenge, isTrue);
+      expect(purchases.ownsPack(2), isTrue);
+      expect(purchases.ownsPack(1), isFalse);
+      expect(purchases.ownsPack(3), isFalse);
 
       final prefs = await SharedPreferences.getInstance();
       expect(
@@ -246,6 +261,12 @@ void main() {
         isTrue,
       );
     });
+  });
+
+  test('nothing owned → Challenge locked', () {
+    PurchasesController.instance.resetForTest();
+    expect(PurchasesController.instance.hasChallenge, isFalse);
+    expect(PurchasesController.instance.ownsPack(1), isFalse);
   });
 
   group('AdGateway init gate', () {

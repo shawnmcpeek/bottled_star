@@ -28,6 +28,9 @@ class ScoreStore {
   String? lastMessageId;
   String? lastEndingLine;
 
+  /// Set by [recordRun] — true when this run beat the saved personal best.
+  bool lastRunWasPersonalBest = false;
+
   String get _scoreKey => mode.scoreKey;
   String get _tierKey => mode.highestTierKey;
   String get _kilonovaKey => 'kilonovas_${mode.name}';
@@ -110,6 +113,9 @@ class ScoreStore {
     Random? random,
   }) async {
     final previousHighScore = highScore;
+    final previousCollapseBest = hasCollapseBest;
+    final previousBestKilonovas = bestKilonovas;
+    final previousBestShots = bestShots;
     final rng = random ?? Random();
 
     final EndingMessagePick pick;
@@ -139,26 +145,29 @@ class ScoreStore {
     lastEnding = ending;
     lastMessageId = pick.id;
     lastEndingLine = pick.text;
+    lastRunWasPersonalBest = false;
 
     if (mode == GameMode.collapse) {
-      final better = !hasCollapseBest ||
+      final better = !previousCollapseBest ||
           compareCollapse(
                 aKilonovas: kilonovaCount,
                 aShots: shotCount,
-                bKilonovas: bestKilonovas,
-                bShots: bestShots,
+                bKilonovas: previousBestKilonovas,
+                bShots: previousBestShots,
               ) <
               0;
       if (better) {
         bestKilonovas = kilonovaCount;
         bestShots = shotCount;
         hasCollapseBest = true;
+        lastRunWasPersonalBest = true;
       }
       // Keep a scalar highScore as total points for legacy UI paths.
       if (score > highScore) highScore = score;
     } else {
-      if (score > highScore) {
+      if (score > previousHighScore) {
         highScore = score;
+        lastRunWasPersonalBest = true;
       }
     }
 

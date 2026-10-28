@@ -6,14 +6,16 @@ import '../../game/challenge/level_library.dart';
 import '../../game/challenge/level_spec.dart';
 import '../../game/modes/game_mode.dart';
 import '../../game/modes/play_args.dart';
+import '../../game/systems/purchases_controller.dart';
 import '../../game/systems/run_save_store.dart';
 import '../../theme/game_colors.dart';
 import '../../theme/game_fonts.dart';
+import 'challenge_unlock_sheet.dart';
 import 'continue_run_dialog.dart';
 import 'menu_page_scaffold.dart';
 
-/// Level picker for Challenge. Levels unlock in play order — clearing one
-/// unlocks the next (see [ChallengeProgress.isUnlocked]).
+/// Level picker for Challenge, grouped by pack. Each owned pack unlocks in
+/// play order from its own first level (see [ChallengeProgress.isUnlocked]).
 class ChallengeLevelSelectScreen extends StatefulWidget {
   const ChallengeLevelSelectScreen({super.key});
 
@@ -75,10 +77,16 @@ class _ChallengeLevelSelectScreenState
       child: !_ready
           ? const Center(child: CircularProgressIndicator())
           : ListenableBuilder(
-              listenable: ChallengeProgress.instance,
+              listenable: Listenable.merge([
+                ChallengeProgress.instance,
+                PurchasesController.instance,
+              ]),
               builder: (context, _) {
-                final levels = _library.allLevels;
-                if (levels.isEmpty) {
+                final packs = [
+                  for (var n = 1; _library.pack(n) != null; n++)
+                    _library.pack(n)!,
+                ];
+                if (packs.isEmpty) {
                   return Center(
                     child: Text(
                       'No levels yet.',
@@ -89,28 +97,83 @@ class _ChallengeLevelSelectScreenState
                     ),
                   );
                 }
-                final playOrder = levels.map((l) => l.id).toList();
-                return ListView.separated(
-                  itemCount: levels.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final level = levels[index];
-                    final progress = ChallengeProgress.instance;
-                    final unlocked = progress.isUnlocked(level.id, playOrder);
-                    final completed = progress.isCompleted(level.id);
-                    final best = progress.bestShots(level.id);
-                    return _LevelRow(
-                      index: index + 1,
-                      level: level,
-                      unlocked: unlocked,
-                      completed: completed,
-                      bestShots: best,
-                      onTap: unlocked ? () => _open(level) : null,
-                    );
-                  },
+                final purchases = PurchasesController.instance;
+                final progress = ChallengeProgress.instance;
+                return ListView(
+                  children: [
+                    for (final pack in packs) ...[
+                      _PackHeader(
+                        pack: pack.pack,
+                        owned: purchases.ownsPack(pack.pack),
+                        onUnlock: () =>
+                            showPackUnlockSheet(context, pack: pack.pack),
+                      ),
+                      const SizedBox(height: 12),
+                      for (final (i, level) in pack.levels.indexed) ...[
+                        _levelRow(
+                          index: i + 1,
+                          level: level,
+                          owned: purchases.ownsPack(pack.pack),
+                          playOrder: [for (final l in pack.levels) l.id],
+                          progress: progress,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      const SizedBox(height: 18),
+                    ],
+                  ],
                 );
               },
             ),
+    );
+  }
+
+  Widget _levelRow({
+    required int index,
+    required LevelSpec level,
+    required bool owned,
+    required List<String> playOrder,
+    required ChallengeProgress progress,
+  }) {
+    final unlocked = owned && progress.isUnlocked(level.id, playOrder);
+    return _LevelRow(
+      index: index,
+      level: level,
+      unlocked: unlocked,
+      lockedReason: owned
+          ? 'Locked — clear the previous level first'
+          : 'Unlock Pack ${level.pack} to play',
+      completed: progress.isCompleted(level.id),
+      bestShots: progress.bestShots(level.id),
+      onTap: unlocked ? () => _open(level) : null,
+    );
+  }
+}
+
+class _PackHeader extends StatelessWidget {
+  const _PackHeader({
+    required this.pack,
+    required this.owned,
+    required this.onUnlock,
+  });
+
+  final int pack;
+  final bool owned;
+  final VoidCallback onUnlock;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text('PACK $pack', style: GameFonts.label(fontSize: 12)),
+        ),
+        if (!owned)
+          ElevatedButton(
+            onPressed: onUnlock,
+            child: const Text('Unlock'),
+          ),
+      ],
     );
   }
 }
@@ -120,6 +183,7 @@ class _LevelRow extends StatelessWidget {
     required this.index,
     required this.level,
     required this.unlocked,
+    required this.lockedReason,
     required this.completed,
     required this.bestShots,
     required this.onTap,
@@ -128,6 +192,7 @@ class _LevelRow extends StatelessWidget {
   final int index;
   final LevelSpec level;
   final bool unlocked;
+  final String lockedReason;
   final bool completed;
   final int? bestShots;
   final VoidCallback? onTap;
@@ -165,7 +230,7 @@ class _LevelRow extends StatelessWidget {
                     Text(
                       unlocked
                           ? challengeLevelSummary(level)
-                          : 'Locked — clear the previous level first',
+                          : lockedReason,
                       style: GameFonts.prose(
                         fontSize: 13,
                         color: GameColors.mutedText,

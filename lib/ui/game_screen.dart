@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
@@ -14,6 +16,7 @@ import '../game/systems/leaderboard_service.dart';
 import '../game/systems/haptics_controller.dart';
 import '../game/systems/music_controller.dart';
 import '../game/systems/purchases_controller.dart';
+import '../game/systems/review_prompt.dart';
 import '../game/systems/score_store.dart';
 import '../game/systems/settings_store.dart';
 import '../game/systems/sfx_controller.dart';
@@ -766,7 +769,13 @@ class _EndingCardState extends State<_EndingCard> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeSubmit());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _maybeSubmit();
+      if (!mounted) return;
+      if (widget.game.scoreStore.lastRunWasPersonalBest) {
+        unawaited(ReviewPrompt.maybeAskAfterPositiveMoment());
+      }
+    });
   }
 
   Future<void> _maybeSubmit() async {
@@ -789,8 +798,8 @@ class _EndingCardState extends State<_EndingCard> {
     if (!mounted) return;
 
     var name = _settings.displayName;
-    if (name == null || name.isEmpty) {
-      name = await promptDisplayName(context);
+    if (name == null || LeaderboardService.sanitizeDisplayName(name) == null) {
+      name = await promptDisplayName(context, initial: name);
       if (!mounted) return;
       if (name == null) {
         setState(() => _boardStatus = 'Not posted');

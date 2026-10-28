@@ -54,7 +54,6 @@
       ],
 
       "constraints": [
-        { "type": "neverProduce", "element": "C" },
         { "type": "neverProduce", "element": "S" },
         { "type": "noSameTier" },
         { "type": "maxBodies", "value": 12 }
@@ -313,7 +312,27 @@
       "name": "Spark",
       "blurb": "Four hydrogens. No more, no less. Find each other twice.",
 
-      "seed": { "bodies": [], "baked": null },
+      "seed": {
+        "bodies": [
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.18,
+            "fixed": true
+          },
+          {
+            "element": "O",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 180,
+            "radiusFrac": 0.18,
+            "fixed": true
+          }
+        ],
+        "baked": null
+      },
 
       "queue": {
         "mode": "fixed",
@@ -328,7 +347,7 @@
       ],
 
       "constraints": [
-        { "type": "maxBodies", "value": 6 }
+        { "type": "maxBodies", "value": 8 }
       ],
 
       "rules": { "remnants": false },
@@ -392,7 +411,7 @@
     {
       "id": "p2_08",
       "name": "Same Story, No Shortcuts",
-      "blurb": "Same two oxygens. The shortcut is illegal today — that's four helium captures, not zero.",
+      "blurb": "Same two oxygens. The shortcut is illegal today. That's four helium captures, not zero.",
 
       "seed": {
         "bodies": [
@@ -402,6 +421,30 @@
             "placement": "cluster",
             "radiusFrac": 0.4,
             "arcDeg": [70, 110]
+          },
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 0,
+            "radiusFrac": 0.18,
+            "fixed": true
+          },
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 120,
+            "radiusFrac": 0.18,
+            "fixed": true
+          },
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 240,
+            "radiusFrac": 0.18,
+            "fixed": true
           }
         ],
         "baked": null
@@ -409,11 +452,11 @@
 
       "queue": {
         "mode": "fixed",
-        "sequence": ["H", "H", "He", "H", "H", "He", "H", "H"],
+        "sequence": ["H", "H", "He", "H", "H", "He"],
         "visibleCount": 3
       },
 
-      "budget": { "shots": 8 },
+      "budget": { "shots": 6 },
 
       "goals": [
         { "type": "produce", "element": "S", "count": 1 }
@@ -421,7 +464,7 @@
 
       "constraints": [
         { "type": "noSameTier" },
-        { "type": "maxBodies", "value": 10 }
+        { "type": "maxBodies", "value": 12 }
       ],
 
       "rules": { "remnants": false },
@@ -432,7 +475,7 @@
     {
       "id": "p2_09",
       "name": "The Pin Is Fuel",
-      "blurb": "Same two oxygens. This time the pin is the helium. Charge it. Knocking them is sulfur, and that is not the goal.",
+      "blurb": "Same two oxygens. This time the pin is the helium. One shot to charge it.",
 
       "seed": {
         "bodies": [
@@ -456,6 +499,14 @@
             "placement": "point",
             "angleDeg": 180,
             "radiusFrac": 0.28
+          },
+          {
+            "element": "C",
+            "count": 1,
+            "placement": "point",
+            "angleDeg": 90,
+            "radiusFrac": 0.2,
+            "fixed": true
           }
         ],
         "baked": null
@@ -463,11 +514,11 @@
 
       "queue": {
         "mode": "fixed",
-        "sequence": ["H", "H"],
-        "visibleCount": 2
+        "sequence": ["H"],
+        "visibleCount": 1
       },
 
-      "budget": { "shots": 2 },
+      "budget": { "shots": 1 },
 
       "goals": [
         { "type": "produce", "element": "Ne", "count": 1 }
@@ -578,7 +629,6 @@
 
       "constraints": [
         { "type": "neverProduce", "element": "O" },
-        { "type": "neverProduce", "element": "C" },
         { "type": "maxBodies", "value": 6 }
       ],
 
@@ -907,7 +957,6 @@
 
       "constraints": [
         { "type": "neverProduce", "element": "O" },
-        { "type": "neverProduce", "element": "C" },
         { "type": "maxBodies", "value": 6 }
       ],
 
@@ -1083,7 +1132,6 @@
 
       "constraints": [
         { "type": "neverProduce", "element": "Ne" },
-        { "type": "neverProduce", "element": "C" },
         { "type": "maxBodies", "value": 10 }
       ],
 

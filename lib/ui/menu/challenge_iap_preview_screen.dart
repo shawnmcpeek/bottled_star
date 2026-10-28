@@ -118,7 +118,10 @@ class ChallengeIapPreviewScreen extends StatelessWidget {
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(12),
                             ),
-                            child: const ChallengeUnlockPanel(previewMode: true),
+                            child: const ChallengeUnlockPanel(
+                              pack: 1,
+                              previewMode: true,
+                            ),
                           ),
                         ),
                       ],
